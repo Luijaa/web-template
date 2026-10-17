@@ -1,3 +1,24 @@
+<!-- template-only:start -->
+# web-template
+
+**Starter template for web apps built by a mixed team of humans and AI agents** (Claude Code, Hermes, Codex …) — every agent reads the same `AGENTS.md`, rules and skills, so they produce the same kind of result.
+
+แม่แบบเริ่มโปรเจกต์เว็บสำหรับทีมคน + AI agent — ใช้ปุ่ม **Use this template** แล้วทำตามหัวข้อ [สร้างโปรเจกต์ใหม่จาก template นี้](#สร้างโปรเจกต์ใหม่จาก-template-นี้)
+
+| มีอะไรให้ | ไฟล์ |
+|---|---|
+| คำสั่งหลักของทุก agent + กติกา git, Definition of Done | `AGENTS.md`, `.agents/rules/`, `.agents/skills/` (`/design`, `/new-feature`, `/fix-bug`, `/pre-pr-check`, `/review`) |
+| ออกแบบก่อนเขียนโค้ด + บันทึกการตัดสินใจ (MADR) | `docs/design-process.md`, `docs/adr/` |
+| CI: lint/SAST, test, e2e (Playwright), DAST (ZAP), trivy (repo + image), สแกน CVE ซ้ำทุกสัปดาห์ | `.github/workflows/` |
+| image multi-arch (amd64 + arm64) พร้อม SBOM, provenance, OCI labels | `.github/workflows/image.yml` |
+| สูตรตาม stack จากโปรเจกต์จริง (Go + Templ + HTMX, Next.js) | `docs/stacks/` |
+| หลายภาษา (th/en), theme light/dark, WCAG 2.2 AA | `docs/ui.md` |
+| release (SemVer + Keep a Changelog), deploy production, backup | `docs/release.md`, `docs/deploy-prod.md`, `docs/backup.md` |
+
+ส่วนด้านล่างคือ README ที่โปรเจกต์ใหม่จะได้ (`{{...}}` ถูกเติมโดย `scripts/init-project.sh` และหัวข้อนี้ถูกลบออก)
+
+---
+<!-- template-only:end -->
 # {{PROJECT_NAME}}
 
 {{ONE_LINE_DESCRIPTION}}
