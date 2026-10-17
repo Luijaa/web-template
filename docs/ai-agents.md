@@ -31,7 +31,7 @@ agent อ่านข้อความที่คนนอกทีมเข�
 
 ## 4. Secret (Sensitive Information Disclosure — LLM02)
 
-- agent ห้ามอ่าน `.env*` (ยกเว้น `.env.example`), `~/.ssh`, `~/.aws`, `~/.docker/config.json`, credential ของ `gh`
+- agent ห้ามอ่าน `.env*` (ยกเว้น `.env.example`), `~/.ssh`, `~/.aws`, `~/.docker/config.json`, credential ของ `gh` — Claude Code บังคับด้วย deny ใน `.claude/settings.json` (Read/Grep/Glob) + hook `.claude/hooks/guard-secrets.sh` (คำสั่ง Bash ที่อ้าง `.env*` หรือพิมพ์ env ทั้งก้อน); hook เป็นแบบ best-effort ไม่ใช่ sandbox
 - ห้ามพิมพ์ env ทั้งก้อน (`env`, `printenv`, `set`) หรือค่า secret ลง log, การ์ด, PR, issue, แชต
 - ใช้ secret ผ่านตัวแปรที่ tool อ่านเอง ไม่ใส่ในคำสั่งหรือ prompt
 - ถ้าเห็น secret หลุด (ใน diff, log, issue): หยุด แจ้งคน ให้คน rotate — agent ไม่ลบประวัติ git เอง

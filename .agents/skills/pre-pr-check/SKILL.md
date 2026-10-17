@@ -6,7 +6,11 @@ description: Run the full pre-PR checklist (make check, secret scan, docs, diff 
 
 ทำทุกข้อ แล้วรายงานเป็นตาราง ผ่าน/ไม่ผ่าน พร้อมหลักฐาน (คำสั่งและผลย่อ)
 
-1. `make check` ต้องผ่านทั้งหมด (docs-check, lint + SAST, test, build, license), `make e2e` ถ้าเปลี่ยนสิ่งที่ผู้ใช้เห็น (เพิ่ม/แก้ e2e ด้วย) และ `make dast` ถ้าแตะ middleware, header, cookie, หน้า error หรือ route ใหม่
+1. `make check` ต้องผ่านทั้งหมด (docs-check, lint + SAST, test, build, license) — ยกเว้น 2 กรณี:
+   - PR เอกสารอย่างเดียว (`docs(design): …`, ADR, docs): `make docs-check` ผ่านพอ
+   - repo ที่ยังไม่เลือก stack (target พิมพ์ `not configured` — ADR-0001 ยังไม่ accepted): target นั้นรายงานเป็น **N/A (ยังไม่ตั้งค่า)** ไม่ใช่ผ่าน และไม่ใช่เหตุให้หยุด — ห้ามแก้ recipe ให้ `exit 0` เพื่อให้ผ่าน
+
+   และ `make e2e` ถ้าเปลี่ยนสิ่งที่ผู้ใช้เห็น (เพิ่ม/แก้ e2e ด้วย) และ `make dast` ถ้าแตะ middleware, header, cookie, หน้า error หรือ route ใหม่
 2. `git diff origin/main...HEAD --stat` — ดูว่าแตะเฉพาะไฟล์ที่เกี่ยวกับงาน ไม่มีไฟล์หลุด (build output, .env, ไฟล์ส่วนตัว)
 3. log ชั่วคราวที่ลืมลบ: `git diff origin/main...HEAD | grep -n '\[DBG-'` ต้องไม่เจอ (`fix-bug` ข้อ 3)
 4. หา secret ใน diff: `git diff origin/main...HEAD | grep -nEi '(api[_-]?key|secret|token|password|BEGIN .*PRIVATE KEY)'` — ถ้าเจอให้หยุดและแจ้ง

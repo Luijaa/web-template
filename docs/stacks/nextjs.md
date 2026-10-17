@@ -80,7 +80,7 @@ stage: `base` (node alpine + `openssl libc6-compat tzdata`) → `deps` (`npm ci`
 - คัดลอก `.next/standalone`, `.next/static`, `public`, `prisma`, `/opt/tools`
 - ลบ `npm`, `npx`, `corepack` ออกจาก runner (ลดขนาด + ลดช่องโหว่)
 - `USER node`, `HEALTHCHECK CMD wget -qO- http://127.0.0.1:3000/readyz || exit 1` (✚ ต้นแบบเรียก `/healthz`)
-- `CMD ["sh", "-c", "prisma migrate deploy && node server.js"]`
+- `CMD ["sh", "-c", "prisma migrate deploy && exec node server.js"]` — ต้องมี `exec` ไม่งั้น `sh` เป็น PID 1 และไม่ส่ง SIGTERM ต่อให้ node (graceful shutdown ไม่ทำงาน, `docker stop` รอจนครบ grace period แล้ว kill)
 
 ## Health (✚ `/readyz`)
 
@@ -102,6 +102,11 @@ export async function GET() {
 ```
 
 `/healthz` ตอบ `{"status":"ok"}` โดยไม่แตะ DB; middleware ต้องยกเว้นทั้งสอง path จาก auth
+
+**ยังขาด (✚ ต้องทำเองตอนตั้ง stack — ยังไม่ได้ทดสอบในโปรเจกต์จริง):** กฎ `.agents/rules/api.md` ให้ `/readyz` ตอบ 503 ทันทีที่ได้ SIGTERM แล้วค่อยปิด
+แต่ server ของ Next.js standalone จัดการ SIGTERM เองและปิดทันที — ต้องตั้ง env `NEXT_MANUAL_SIG_HANDLE=true` แล้วจัดการเองใน `instrumentation.ts`
+(ตั้ง flag ที่ `/readyz` อ่าน → รอ request ค้าง ≤ 10 วินาที → `process.exit(0)`) ตามหัวข้อ graceful shutdown ใน [Next.js self-hosting guide](https://nextjs.org/docs/app/guides/self-hosting)
+— ตรวจกับเอกสารของเวอร์ชันที่ใช้ และเขียน e2e/integration test ยืนยันก่อนใช้จริง
 
 ## migration + seed
 

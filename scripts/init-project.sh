@@ -7,6 +7,10 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 name="${1:?usage: scripts/init-project.sh <project-name> [description] [dev-url] [users] [github-org]}"
+# the name becomes the GHCR image name and the compose project name: lowercase letters, digits and '-' only
+if ! printf '%s' "$name" | grep -Eq '^[a-z0-9][a-z0-9-]*$'; then
+  echo "project name '$name' must match ^[a-z0-9][a-z0-9-]*\$ (lowercase, digits, '-'), same as the repo name" >&2; exit 1
+fi
 desc="${2:-TODO: one line description}"
 url="${3:-https://dev-${name}.example.com}"
 users="${4:-TODO: who uses it}"

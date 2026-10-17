@@ -37,6 +37,10 @@ case "$file" in
     if have ruff; then run ruff format -q "$file"; fi ;;
   *.go)
     if have gofmt; then run gofmt -w "$file"; fi ;;
+  *.templ)
+    # templ CLI on PATH, else the version pinned as a Go tool in go.mod (go-templ-htmx recipe)
+    if have templ; then run templ fmt "$file"
+    elif have go && grep -q 'github.com/a-h/templ/cmd/templ' "$root/go.mod" 2>/dev/null; then run sh -c 'cd "$1" && go tool templ fmt "$2"' _ "$root" "$file"; fi ;;
   *.sh)
     if have shfmt; then run shfmt -w -i 2 "$file"; fi ;;
 esac

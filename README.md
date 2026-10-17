@@ -17,8 +17,8 @@ make help
 | `AGENTS.md` | ทุก agent (Claude Code, Hermes, Codex…) + คน | คำสั่งหลัก: โครงสร้าง, คำสั่ง make, กติกา git, Definition of Done |
 | `CLAUDE.md` | Claude Code | import `AGENTS.md` + ส่วนเฉพาะ Claude |
 | `CLAUDE.local.md` | Claude Code (ส่วนตัว, ไม่ commit) | ค่าเฉพาะเครื่องคุณ |
-| `.claude/settings.json` | Claude Code | permission allow/ask/deny + hook format อัตโนมัติ |
-| `.agents/rules/*.md` (= `.agents/rules/` symlink) | Claude Code โหลดเองตาม `paths:`; agent อื่นเปิดอ่านตาม `AGENTS.md` | กฎของ `web/`, `api/`, container/CI |
+| `.claude/settings.json` | Claude Code | permission allow/ask/deny + hook format อัตโนมัติ + hook กัน Bash อ่าน `.env`/พิมพ์ env (`.claude/hooks/guard-secrets.sh`) |
+| `.agents/rules/*.md` (= `.claude/rules/` symlink) | Claude Code โหลดเองตาม `paths:`; agent อื่นเปิดอ่านตาม `AGENTS.md` | กฎของ `web/`, `api/`, container/CI |
 | `.agents/skills/` (= `.claude/skills/` symlink) | Claude Code + Hermes (project skills, ต้อง `hermes skills trust` ครั้งแรก) + agent อื่นที่อ่าน Agent Skills | `/design`, `/new-feature`, `/fix-bug`, `/pre-pr-check`, `/review` |
 | `.claude/agents/reviewer.md` | Claude Code | subagent ตรวจ diff ก่อน PR — ใช้เกณฑ์จาก skill `review` (`.agents/skills/review/SKILL.md`) |
 | `.mcp.json` | Claude Code | MCP server ของโปรเจกต์ (ว่างไว้ เพิ่มเมื่อจำเป็น และ pin เวอร์ชัน) |
