@@ -1,0 +1,33 @@
+# personal AI config (never commit)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# secrets
+.env
+.env.*
+!.env.example
+**/secrets/
+
+# agent worktrees
+.worktrees/
+
+# deps / build
+node_modules/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+coverage/
+
+# e2e (Playwright) and DAST (ZAP) output
+.zap/.results/
+e2e/.results/
+test-results/
+playwright-report/
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

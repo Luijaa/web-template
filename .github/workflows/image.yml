@@ -1,0 +1,179 @@
+name: image
+
+# Build the app image once and reuse the same image everywhere:
+#   pull_request        → build linux/amd64 + linux/arm64, no push (proves the Dockerfile builds on both)
+#   push to main        → push ghcr.io/<owner>/<repo>:sha-<7> and :main   (dev server pulls :main)
+#   release v1.2.3      → retag that commit's image as :1.2.3 and :latest, no rebuild (production)
+# Every pushed image carries an SBOM (SPDX) and build provenance (SLSA) attestation, OCI labels
+# (source, revision, version = sha-<7>, created …) and, on a release, index annotations with the version.
+# Releases are created by a human on GitHub — agents never create releases or push images.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  # never cancel a main build: a release of that commit needs its sha-<7> image
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  CONTEXT: web # folder that holds the Dockerfile
+  TARGET: runner # production stage of the Dockerfile
+
+jobs:
+  guard:
+    if: github.event_name != 'release'
+    runs-on: ubuntu-24.04
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        run: |
+          if [ -f "$CONTEXT/Dockerfile" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$CONTEXT/Dockerfile not found (stack not set up yet) — skipping image build"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: guard
+    if: needs.guard.outputs.ready == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux/amd64, runner: ubuntu-24.04 }
+          - { platform: linux/arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # OCI labels only (title, description, source, url, revision, created, licenses, version);
+      # tags are set by the publish/release jobs below, so version = the sha-<7> tag this image gets
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: type=sha,prefix=sha-,format=short
+      # CVE scan of the image itself before anything is pushed: OS packages of the base image and the
+      # runtime/libraries compiled into the app (the `security` job only sees repo files). Same bar as
+      # `security`: CRITICAL/HIGH with a fix available fails; accepted findings go in .trivyignore.
+      - name: build for scan
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.CONTEXT }}
+          target: ${{ env.TARGET }}
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: image-scan:local
+          cache-from: type=gha,scope=${{ matrix.platform }}
+      - name: trivy image
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/src:ro" aquasec/trivy:0.74.0 \
+            image --quiet --exit-code 1 --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed \
+            --ignorefile /src/.trivyignore image-scan:local
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.CONTEXT }}
+          target: ${{ env.TARGET }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # supply chain (docs/release.md): SPDX SBOM + SLSA provenance stored as attestations next to the
+          # image; they survive the digest merge and the release retag. mode=min: never records build-arg values.
+          sbom: true
+          provenance: mode=min
+          outputs: ${{ github.event_name == 'push' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE) || 'type=cacheonly' }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+      - if: github.event_name == 'push'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: mkdir -p /tmp/digests && touch "/tmp/digests/${DIGEST#sha256:}"
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ matrix.runner }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - working-directory: /tmp/digests
+        run: |
+          src=$(printf "$IMAGE@sha256:%s " *)
+          # shellcheck disable=SC2086
+          docker buildx imagetools create -t "$IMAGE:sha-${GITHUB_SHA::7}" -t "$IMAGE:main" $src
+          docker buildx imagetools inspect "$IMAGE:sha-${GITHUB_SHA::7}"
+
+  # GHCR space on a Free org is small: keep released versions, :main, :latest and the newest
+  # 3 sha-* images; delete older sha-* and untagged leftovers (multi-arch aware).
+  cleanup:
+    needs: publish
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          use-regex: true
+          exclude-tags: '^(main|latest|\d+\.\d+\.\d+.*)$'
+          keep-n-tagged: 3
+          delete-untagged: true
+          delete-partial-images: true
+
+  release:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          case "$TAG" in v[0-9]*) ;; *) echo "::error::release tag must look like v1.2.3 (got $TAG)"; exit 1 ;; esac
+          src="$IMAGE:sha-${GITHUB_SHA::7}"
+          docker buildx imagetools inspect "$src" > /dev/null \
+            || { echo "::error::$src not found — release a commit that was merged to main and built"; exit 1; }
+          # labels inside the image say sha-<7> (built before the release); the index annotation
+          # carries the release version — platform manifests and attestations stay byte-identical
+          docker buildx imagetools create -t "$IMAGE:${TAG#v}" -t "$IMAGE:latest" \
+            --annotation "index:org.opencontainers.image.version=${TAG#v}" \
+            --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
+            --annotation "index:org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            "$src"
+          docker buildx imagetools inspect "$IMAGE:${TAG#v}"

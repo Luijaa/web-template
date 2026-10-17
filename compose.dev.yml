@@ -1,0 +1,20 @@
+# Dev deploy overlay (shared dev server behind a reverse proxy).
+# Give the app service `image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_NAME}}:${IMAGE_TAG:-main}` next to its `build:` so:
+#   merged main (image built by CI): docker compose -f compose.yml -f compose.dev.yml -p {{PROJECT_NAME}}-dev pull && ... up -d
+#   PR branch before merge:          docker compose -f compose.yml -f compose.dev.yml -p {{PROJECT_NAME}}-dev up -d --build
+# Production does not use this file — see compose.prod.yml and docs/deploy-prod.md.
+# The reverse proxy (e.g. Nginx Proxy Manager) reaches the public service by container name on
+# the external network below — no ports are published on the host.
+services:
+  placeholder:
+    container_name: "{{PROJECT_NAME}}-dev"
+    networks: [default, proxy]
+    # Put this on the service that receives traffic from the proxy. Only the npm-net subnet — never a user LAN range.
+    # check: docker network inspect npm-net -f '{{(index .IPAM.Config 0).Subnet}}'
+    environment:
+      TRUSTED_PROXIES: 172.18.0.0/16
+
+networks:
+  proxy:
+    external: true
+    name: npm-net

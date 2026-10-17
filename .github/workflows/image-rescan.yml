@@ -1,0 +1,90 @@
+name: image-rescan
+
+# Weekly CVE re-scan of the images that are deployed: :main (dev) and :latest (production).
+# Catches CVEs published after the image was built. Same bar as CI (CRITICAL/HIGH with a fix,
+# minus .trivyignore). Findings open one issue per tag (label `security`), later runs comment on it,
+# and a clean run closes it. Fix = rebuild with the patched base image/dependency (Dependabot PR or
+# `docker pull` of the new base), merge → new :main; production needs a new release (docs/release.md).
+
+on:
+  schedule:
+    - cron: "17 1 * * 1" # Monday 08:17 Asia/Bangkok
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  issues: write
+
+concurrency:
+  group: image-rescan
+  cancel-in-progress: false
+
+jobs:
+  rescan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: scan :main and :latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          mkdir -p /tmp/scan
+          gh label create security --color B60205 --description "security finding" >/dev/null 2>&1 || true
+          failed=0
+          for tag in main latest; do
+            if ! digest=$(docker buildx imagetools inspect "$image:$tag" --format '{{json .Manifest.Digest}}' 2>/dev/null); then
+              echo "::notice::$image:$tag not found — skipped"; continue
+            fi
+            rows=""
+            for platform in linux/amd64 linux/arm64; do
+              out="/tmp/scan/${tag}-${platform//\//-}.json"
+              docker run --rm -e TRIVY_USERNAME -e TRIVY_PASSWORD -v "$PWD:/src:ro" -v /tmp/scan:/tmp/scan \
+                aquasec/trivy:0.74.0 image --quiet --image-src remote --platform "$platform" \
+                --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed --ignorefile /src/.trivyignore \
+                --format json --output "$out" "$image:$tag"
+              rows+=$(jq -r --arg p "$platform" '.Results[]? | .Target as $t | .Vulnerabilities[]? |
+                "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion) | \($t) | \($p) |"' "$out")
+              rows+=$'\n'
+            done
+            rows=$(printf '%s' "$rows" | sed '/^$/d' | sort -u)
+            title="[security] CVE ใน image :$tag"
+            issue=$(gh issue list --state open --label security --limit 100 --json number,title \
+              --jq ".[] | select(.title == \"$title\") | .number" | head -1)
+            if [ -z "$rows" ]; then
+              echo "$image:$tag clean"
+              [ -n "$issue" ] && gh issue comment "$issue" --body "สแกนรอบ $(date -u +%F) ไม่พบแล้ว ($image:$tag @ $digest) — ปิด issue" \
+                && gh issue close "$issue"
+              continue
+            fi
+            failed=1
+            {
+              echo "สแกนอัตโนมัติ $(date -u +%F) — \`$image:$tag\` (digest $digest)"
+              echo
+              echo "เกณฑ์เดียวกับ CI: CRITICAL/HIGH ที่มีเวอร์ชันแก้แล้ว (ไม่นับที่อยู่ใน \`.trivyignore\`)"
+              echo
+              echo "| CVE | ระดับ | package | ที่ใช้อยู่ | แก้ใน | อยู่ใน | platform |"
+              echo "|---|---|---|---|---|---|---|"
+              echo "$rows"
+              echo
+              echo "**แก้:** อัปเดต base image/dependency ให้ถึงเวอร์ชัน \"แก้ใน\" (PR ของ Dependabot หรือเปิด PR เอง) → merge → \`:main\` ใหม่ → deploy dev; production ต้องออก release ใหม่ (docs/release.md)"
+              echo "ยังแก้ไม่ได้: ใส่ \`.trivyignore\` พร้อมเหตุผล + \`exp:\` ผ่าน PR"
+            } > /tmp/scan/body.md
+            if [ -n "$issue" ]; then
+              gh issue comment "$issue" --body-file /tmp/scan/body.md
+            else
+              gh issue create --title "$title" --label security --body-file /tmp/scan/body.md
+            fi
+          done
+          if [ "$failed" = 1 ]; then
+            echo "::error::CVE found in deployed images — see the security issue(s)"; exit 1
+          fi

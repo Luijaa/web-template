@@ -1,0 +1,5 @@
+# Accepted findings for every trivy vuln scan: `trivy fs` (CI job "security"), `trivy image` (job "image")
+# and the weekly `image-rescan` workflow. Every entry needs a reason and an expiry:
+#
+# <why it is accepted and when to drop it>
+# CVE-YYYY-NNNNN exp:YYYY-MM-DD

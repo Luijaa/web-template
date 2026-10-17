@@ -1,0 +1,9 @@
+# Approved exceptions for `make license` — only "ต้องขออนุมัติ" licenses (LGPL, EPL, CDDL)
+# that have an ADR in docs/adr/. Format (paths accept globs):
+#
+# licenses:
+#   - id: LGPL-3.0-or-later
+#     paths: ["app/node_modules/@img/sharp-*/package.json"]
+#     statement: "ADR-000N: <why>"
+#     expired_at: 2027-04-30
+licenses: []

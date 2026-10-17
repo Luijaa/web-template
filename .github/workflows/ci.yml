@@ -1,0 +1,133 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # lint + unit tests + build — skipped until setup/lint/test are configured for the stack
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # design docs, ADRs and docs index — runs even before the stack is chosen
+      - name: docs
+        run: make docs-check
+      - name: stack configured?
+        id: guard
+        run: |
+          if grep -A1 -E '^(setup|lint|test):' Makefile | grep -q 'not configured'; then
+            echo "::notice::make setup/lint/test not configured yet (template) — skipping checks"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: setup
+        if: steps.guard.outputs.configured == 'true'
+        run: make setup
+      - name: lint
+        if: steps.guard.outputs.configured == 'true'
+        run: make lint
+      - name: test
+        if: steps.guard.outputs.configured == 'true'
+        run: make test
+      - name: build
+        if: steps.guard.outputs.configured == 'true'
+        run: make build
+      # open-source licenses of what ships in the image (docs/dependencies.md)
+      - name: license configured?
+        id: license
+        run: |
+          if grep -A1 -E '^license:' Makefile | grep -q 'not configured'; then
+            echo "::notice::make license not configured yet — skipping license check"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: license
+        if: steps.guard.outputs.configured == 'true' && steps.license.outputs.configured == 'true'
+        run: make license
+
+  # end-to-end tests on the production image (docs/testing.md) — skipped until `make e2e` is configured
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: e2e configured?
+        id: guard
+        run: |
+          if grep -A1 -E '^e2e:' Makefile | grep -q 'not configured'; then
+            echo "::notice::make e2e not configured yet — skipping end-to-end tests"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: e2e
+        if: steps.guard.outputs.configured == 'true'
+        run: make e2e
+      - name: upload report
+        if: failure() && steps.guard.outputs.configured == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: e2e/.results/
+          include-hidden-files: true
+          retention-days: 7
+
+  # ZAP baseline (passive scan) of the production image: security headers, cookie flags, error leaks.
+  # Rules in .zap/rules.tsv — only FAIL rules break the build. Skipped until `make dast` is configured.
+  dast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: dast configured?
+        id: guard
+        run: |
+          if grep -A1 -E '^dast:' Makefile | grep -q 'not configured'; then
+            echo "::notice::make dast not configured yet — skipping ZAP baseline"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: dast
+        if: steps.guard.outputs.configured == 'true'
+        run: make dast
+      - name: upload report
+        if: failure() && steps.guard.outputs.configured == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-report
+          path: .zap/.results/
+          include-hidden-files: true
+          retention-days: 7
+
+  # dependencies (lockfiles), committed secrets and Dockerfile/compose misconfig.
+  # Accepted findings go in .trivyignore with a reason and an expiry.
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      # hidden characters: bidi controls (Trojan Source) and Unicode tags (invisible prompt injection).
+      # Zero-width spaces are allowed — Thai text uses them for line breaking.
+      - name: hidden characters
+        run: |
+          if LC_ALL=C.UTF-8 git grep -nIP '[\x{202A}-\x{202E}\x{2066}-\x{2069}\x{E0000}-\x{E007F}]'; then
+            echo "::error::hidden bidi/tag characters found (docs/ai-agents.md)"; exit 1
+          fi
+      - name: trivy
+        run: |
+          docker run --rm -v "$PWD:/src:ro" aquasec/trivy:0.74.0 fs --quiet --exit-code 1 \
+            --scanners vuln,secret,misconfig --severity CRITICAL,HIGH --ignore-unfixed \
+            --ignorefile /src/.trivyignore /src

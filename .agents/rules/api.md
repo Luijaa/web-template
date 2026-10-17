@@ -1,0 +1,46 @@
+---
+paths:
+  - "api/**"
+  - "cmd/**"
+  - "internal/**"
+  - "server/**"
+  - "app/api/**"
+---
+# API / server rules
+
+- ทุก endpoint: validate input (schema), ตรวจสิทธิ์ (authz) ก่อนทำงาน, คืน error เป็นรูปแบบเดียวกันทั้งระบบ — JSON API ใช้ RFC 9457 (`Content-Type: application/problem+json` มี `type`, `title`, `status`, `detail` + `code` สำหรับให้ UI แปล), หน้า HTML แสดง error ในหน้า; status code ตรงความหมายตาม RFC 9110 (400 input ผิด, 401 ยังไม่ login, 403 ไม่มีสิทธิ์, 404, 409 ชนกัน, 422 ผ่าน schema แต่ผิดกฎ, 429 ถูกจำกัด)
+- **`HEAD` คู่กับ `GET` ทุก route** (RFC 9110 §9.3.2): ตอบ status และ header (`Content-Type`, `Vary`, security header) เหมือน `GET` แต่ไม่มี body, ผ่าน middleware ตรวจสิทธิ์ชุดเดียวกับ `GET` — ห้ามตอบ 405 (uptime monitor, load balancer และ `curl -I` ใช้ `HEAD`); router ที่ไม่ทำให้เอง ต้องเปิดเอง เช่น chi `r.Use(middleware.GetHead)`; route ที่รับแค่ `POST` ยังตอบ `HEAD` เป็น 405 ได้
+- JSON API ที่ระบบอื่นเรียก: มีสเปก OpenAPI 3.1 ใน repo และแก้ใน PR เดียวกับ endpoint
+- SQL ผ่าน query builder/ORM หรือ parameterized query เท่านั้น ห้ามต่อ string
+- เปลี่ยน schema ฐานข้อมูลด้วย migration ไฟล์ใหม่เสมอ ห้ามแก้ migration ที่ merge ไปแล้ว
+- เก็บเวลาเป็น UTC, รับ/ส่งเป็น ISO 8601 พร้อม timezone; ขอบเขตวัน/เดือนในการ query และรายงานคิดตาม Asia/Bangkok (แปลงเป็น UTC ก่อน query)
+- config ทั้งหมดมาจาก environment variable และต้องมีใน `.env.example`
+- log เป็น JSON บรรทัดเดียว ห้าม log password/token/ข้อมูลส่วนบุคคล
+- **health endpoint** (ไม่ต้อง auth, ไม่นับ rate limit, ไม่ลง access log ทุกครั้ง, ไม่เปิดเผยเวอร์ชัน/รายละเอียด error):
+  - `GET /healthz` (liveness): process ยังตอบได้ — ไม่แตะ DB หรือระบบภายนอก, ตอบ `200 {"status":"ok"}` เสมอเมื่อ process ไม่ค้าง
+  - `GET /readyz` (readiness): พร้อมรับงานจริง — ping DB (timeout ≤ 2 วินาที), migration อยู่ที่เวอร์ชันที่โค้ดต้องการ, โฟลเดอร์ข้อมูลเขียนได้; ไม่พร้อม = `503 {"status":"unavailable","checks":{"db":"fail"}}` (บอกแค่ชื่อ check ที่พัง)
+  - รับ SIGTERM แล้ว `/readyz` ตอบ 503 ทันที จากนั้นรอ request ที่ค้างเสร็จ (graceful shutdown ≤ 10 วินาที) แล้วปิด
+  - test: `/healthz` 200 แม้ DB ใช้ไม่ได้, `/readyz` 503 เมื่อ DB ใช้ไม่ได้, `HEAD` ของทั้งสอง path ได้ status เดียวกับ `GET` และ body ว่าง
+- endpoint ใหม่ต้องมี test: กรณีสำเร็จ, input ผิด, ไม่มีสิทธิ์
+- กฎสิทธิ์/การเปลี่ยนสถานะอยู่ที่ service (ฟังก์ชันเดียวที่ทุก route เรียก) ไม่ใช่ที่ handler หรือ UI — เพิ่มหรือแก้กฎแล้วต้องไล่ทุก route ที่เขียนข้อมูลเดียวกัน (รวมทางอ้อม เช่น รวมรายการซ้ำ, ยกเลิก, งานเบื้องหลัง) ให้ใช้กฎชุดเดียวกัน และตรวจสิทธิ์ก่อนเขียน DB เสมอ
+- id ที่รับจากผู้ใช้ (form/JSON/query/path) ที่อ้างถึงข้อมูลอื่น เช่น `asset_id`, `technician_id`, `category_id`: service ตรวจว่าผู้ใช้มีสิทธิ์ใช้ข้อมูลนั้น (เจ้าของ/ถือครอง/ขอบเขตตาม role) ไม่ใช่แค่มีอยู่จริง — การกรองตัวเลือกใน UI ไม่นับ; ตรวจใน transaction เดียวกับการเขียน; id ที่ไม่มีกับไม่มีสิทธิ์ตอบ error เดียวกัน (กันการเดา id); ค่าที่ derive จาก id นั้นอ่านจาก DB ไม่รับจากฟอร์ม; test ต้องมีกรณีส่ง id ของผู้ใช้อื่นแล้วได้ 403/422
+- **IP ผู้ใช้หลัง reverse proxy** (rate limit, audit log, ล็อกบัญชี): เชื่อ `X-Forwarded-For`/`X-Real-IP`/`Forwarded` **เฉพาะเมื่อ `RemoteAddr` อยู่ใน `TRUSTED_PROXIES`** (CIDR คั่นด้วย `,`); ไล่ `X-Forwarded-For` จากขวาไปซ้าย ข้าม IP ที่อยู่ใน trusted และค่าที่ parse ไม่ได้ แล้วใช้ตัวแรกที่ไม่ trusted — **ห้ามใช้ตัวซ้ายสุด** (ผู้ใช้ปลอมได้); `TRUSTED_PROXIES` ว่าง (ค่าเริ่มต้น) = ใช้ `RemoteAddr` และไม่อ่าน header; CIDR ผิดรูปแบบ = แอปไม่ start; log รายการที่ใช้ตอน start — ห้ามใช้ middleware ที่เชื่อ header เสมอ (เช่น chi `middleware.RealIP`, Express `trust proxy: true`, uvicorn `--forwarded-allow-ips '*'`); test ต้องมี: header ปลอมจาก IP ที่ไม่ trusted ถูกเมิน, proxy หลายชั้น, ค่าขยะใน header
+- `X-Forwarded-Proto`/`X-Forwarded-Host` ใช้กฎ trusted เดียวกัน; ลิงก์เต็ม (อีเมล, redirect หลัง login, OAuth callback) สร้างจาก `APP_BASE_URL` ไม่ใช่จาก header `Host`; redirect ไปเฉพาะ path ภายในหรือ host ใน `APP_BASE_URL`
+- cookie ของ session: `HttpOnly; Secure; SameSite=Lax; Path=/` (ปิด `Secure` ได้เฉพาะ local ที่ไม่มี HTTPS); ฟอร์มที่เขียนข้อมูลมี CSRF token หรือเช็ค `Origin`
+- security header ทุก response: `Content-Security-Policy` (ไม่มี `unsafe-inline`/`unsafe-eval` ใน `script-src`, `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`; HSTS ตั้งที่ reverse proxy ของ production
+- รหัสผ่านตาม NIST SP 800-63B: เก็บด้วย argon2id หรือ bcrypt, ความยาวขั้นต่ำตาม `docs/standards.md` รับได้อย่างน้อย 64 ตัว, ไม่บังคับผสมอักขระหรือเปลี่ยนตามรอบ, จำกัดการลองผิด (429) แยกตาม IP และบัญชี, ข้อความ login ผิดเหมือนกันไม่ว่าบัญชีจะมีหรือไม่
+- ข้อมูลส่วนบุคคล (PDPA): เก็บเท่าที่ฟีเจอร์ใช้จริง, ระบุใน `docs/architecture.md` ว่าเก็บอะไรที่ไหน, ไม่ส่งออกนอกระบบโดยไม่มีเหตุผลใน ADR
+- **audit log** (OWASP ASVS V16) — บันทึกในตาราง audit ของ DB แยกจาก log ของแอป ใน transaction เดียวกับการเปลี่ยนข้อมูล:
+  - เหตุการณ์: login สำเร็จ/ล้มเหลว, logout, เปลี่ยน/รีเซ็ตรหัสผ่าน, สร้าง/ปิด/เปิดบัญชี, เปลี่ยนบทบาทหรือสิทธิ์, สร้าง/แก้/ลบข้อมูลหลักของโดเมน, เปลี่ยนสถานะ, ส่งออก/ดาวน์โหลดข้อมูล, เปลี่ยนการตั้งค่าระบบ, ถูกปฏิเสธสิทธิ์ (403)
+  - ฟิลด์: เวลา (UTC), ผู้ทำ (user id + บทบาท ณ ตอนนั้น; ระบบ/งานเบื้องหลังระบุชื่อ job), action (รหัส เช่น `ticket.status_changed`), เป้าหมาย (ประเภท + id), ค่าก่อน/หลังของฟิลด์ที่เปลี่ยน, IP ผู้ใช้ (ตามกฎ `TRUSTED_PROXIES`), request id, ผล (success/denied/failed)
+  - ห้ามเก็บรหัสผ่าน, token, session id, เนื้อหาไฟล์ — ค่าที่อ่อนไหวเก็บแค่ว่า "เปลี่ยน" ไม่เก็บค่า
+  - แอปไม่มีทาง UPDATE/DELETE ตาราง audit (append-only); ลบได้เฉพาะงานล้างข้อมูลตามระยะเก็บใน ADR (ค่าเริ่มต้น 1 ปี)
+  - ดูได้เฉพาะ Admin; ข้อมูลส่วนบุคคลใน audit นับเป็นข้อมูล PDPA
+  - test: action ที่แก้ข้อมูลต้องมีแถว audit ที่ถูกต้อง และ action ที่ถูกปฏิเสธก็มีแถว `denied`
+- **session** (OWASP ASVS V7, NIST SP 800-63B AAL2) — ค่าเริ่มต้น เปลี่ยนได้ด้วย ADR:
+  - ไม่ได้ใช้งาน (idle) **60 นาที** → หมดอายุ; อายุสูงสุด (absolute) **24 ชั่วโมง** นับจาก login ไม่ว่าจะใช้อยู่หรือไม่ — ตั้งผ่าน env `SESSION_IDLE_TIMEOUT`, `SESSION_MAX_AGE`
+  - เก็บ session ฝั่ง server (หรือ token ที่มีเวลาหมดอายุในตัวและเพิกถอนได้) ตรวจเวลาที่ server ทุก request — ไม่พึ่ง `Max-Age` ของ cookie อย่างเดียว
+  - ออก session id ใหม่เมื่อ login และเมื่อสิทธิ์เปลี่ยน (กัน session fixation)
+  - เพิกถอนทันที: logout, เปลี่ยน/รีเซ็ตรหัสผ่าน (session อื่นของผู้ใช้นั้นทั้งหมด), ปิดบัญชี, ลดบทบาท
+  - หมดอายุระหว่างใช้: request ปกติ redirect ไปหน้า login พร้อมข้อความ; HTMX/fetch ตอบ 401 + `HX-Redirect` (ไม่ใช่ redirect ที่ทำให้หน้า login ไปโผล่ในกล่องเล็ก) และกลับมาหน้าเดิมหลัง login (path ภายในเท่านั้น)
+  - test: ด้วยนาฬิกาที่ inject ได้ — เกิน idle หมดอายุ, ใช้ต่อเนื่องแต่เกิน absolute ก็หมดอายุ, logout แล้ว cookie เดิมใช้ไม่ได้

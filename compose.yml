@@ -1,0 +1,36 @@
+# Base stack. Uncomment/adjust services once web/ and api/ have Dockerfiles.
+name: "{{PROJECT_NAME}}"
+
+services:
+  # Every service: environment TZ=Asia/Bangkok (container clock, logs, cron). The DB still stores UTC.
+  # web:
+  #   build: ./web
+  #   env_file: .env
+  #   environment:
+  #     TZ: Asia/Bangkok
+  #   restart: unless-stopped
+  #   cpus: 0.5
+  #   mem_limit: 256m
+  #   depends_on: [api]
+
+  # api:
+  #   build: ./api
+  #   env_file: .env
+  #   environment:
+  #     TZ: Asia/Bangkok
+  #   restart: unless-stopped
+  #   cpus: 1.0
+  #   mem_limit: 512m
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/readyz"]   # readiness, not /healthz
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+
+  placeholder:
+    image: nginx:1.27-alpine
+    environment:
+      TZ: Asia/Bangkok
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 64m

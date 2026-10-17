@@ -1,0 +1,30 @@
+# Production: runs a released image from GHCR — no source code and no build on the server.
+# Works on linux/amd64 and linux/arm64 (the image is multi-arch). Full steps: docs/deploy-prod.md
+#   docker login ghcr.io -u <github-user>      # classic PAT with read:packages only
+#   docker compose -f compose.prod.yml pull && docker compose -f compose.prod.yml up -d
+# rollback: set APP_VERSION in .env to the previous release, then run the same two commands.
+# Adjust the service (container port, volume path) when the stack is set up — keep it in sync with compose.yml.
+name: "{{PROJECT_NAME}}"
+
+services:
+  app:
+    image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_NAME}}:${APP_VERSION:?set APP_VERSION (e.g. 1.0.0) in .env}
+    env_file: .env
+    environment:
+      TZ: Asia/Bangkok   # fixed here, not in .env — production hosts may be set to UTC
+    restart: unless-stopped
+    ports:
+      # only localhost: put a TLS reverse proxy (nginx, Caddy, NPM) in front
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    volumes:
+      - app-data:/app/data
+    cpus: 1.0
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  app-data:

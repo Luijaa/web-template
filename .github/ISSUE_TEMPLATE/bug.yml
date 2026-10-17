@@ -1,0 +1,39 @@
+name: บั๊ก
+description: สิ่งที่ทำงานผิดจากที่ควรเป็น
+labels: [bug]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: ขั้นตอนทำซ้ำ
+      value: |
+        1.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: ผลที่ได้
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: ผลที่ควรได้
+    validations:
+      required: true
+  - type: dropdown
+    id: repro
+    attributes:
+      label: เกิดซ้ำได้ไหม
+      options:
+        - ทุกครั้งที่ทำตามขั้นตอน
+        - บางครั้ง
+        - เกิดครั้งเดียว / ยังทำซ้ำไม่ได้
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: เจอที่ไหน
+      description: dev / production + เวอร์ชัน (เช่น 0.2.0 หรือ sha-xxxxxxx)

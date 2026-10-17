@@ -1,0 +1,28 @@
+# Weekly dependency update PRs (a human reviews and merges them like any PR).
+# When the stack is set up, add the app ecosystems, e.g.:
+#   - package-ecosystem: npm      directory: /web
+#   - package-ecosystem: docker   directory: /web
+#   - package-ecosystem: npm      directory: /e2e  (ignore @playwright/test — bump it together with the image tag in compose.e2e.yml)
+# Every entry follows docs/dependencies.md: keep the cooldown below, and for the core runtime/framework/DB
+# (and the docker base image) ignore semver-major — moving to another release line is a separate task:
+#     ignore:
+#       - dependency-name: "node"   # or next, golang, python, postgres …
+#         update-types: ["version-update:semver-major"]
+# Security updates skip the cooldown.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Bangkok
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci(deps)"

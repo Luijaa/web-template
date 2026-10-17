@@ -1,0 +1,42 @@
+name: ฟีเจอร์
+description: งาน 1 ชิ้นที่ส่งมอบได้ใน 1 PR (backlog ของทีม)
+labels: [feature]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: เป้าหมาย
+      description: ใคร (บทบาทตาม CONTEXT.md) ทำอะไรได้ และเพื่ออะไร
+      placeholder: ผู้แจ้งสร้างใบแจ้งซ่อมพร้อมแนบรูปได้ เพื่อให้ช่างเห็นอาการก่อนไปหน้างาน
+    validations:
+      required: true
+  - type: dropdown
+    id: design
+    attributes:
+      label: ต้อง design ก่อนไหม
+      description: เกณฑ์ใน docs/design-process.md หัวข้อ 1 — ใหญ่ = ตาราง/สิทธิ์ใหม่, ระบบภายนอก, import, ข้อมูลส่วนบุคคลใหม่, AI, ≥ 2 หน้าใหม่, เกิน 1 PR
+      options:
+        - ไม่ต้อง — ฟีเจอร์เล็ก 1 PR ในตารางและสิทธิ์เดิม
+        - ต้อง — ยังไม่มี design (เปิดเป็น epic ติด label design)
+        - มี design ที่อนุมัติแล้ว (ใส่ลิงก์ในหมายเหตุ)
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: ตรวจได้จริงทุกข้อ — แต่ละข้อควรมี unit test หรือ e2e ครอบ
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: นอกขอบเขต
+      description: สิ่งที่ไม่ทำใน issue นี้
+  - type: textarea
+    id: notes
+    attributes:
+      label: หมายเหตุ / การตัดสินใจที่เกี่ยว
+      description: อ้าง ADR-NNNN ใน docs/adr/, design.md, issue อื่น
