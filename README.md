@@ -65,7 +65,7 @@ make help
 ## สร้างโปรเจกต์ใหม่จาก template นี้
 
 1. GitHub → **Use this template** → Create a new repository
-2. clone แล้วรัน `scripts/init-project.sh <ชื่อโปรเจกต์> "<คำอธิบาย>" <dev-url> "<ผู้ใช้>"` — เติมค่า, ลบหัวข้อนี้ออกจาก README และลบสคริปต์ตัวเอง (ใช้ครั้งเดียว)
+2. clone แล้วรัน `scripts/init-project.sh --runner github|self-hosted <ชื่อโปรเจกต์> "<คำอธิบาย>" <dev-url> "<ผู้ใช้>"` — เลือกว่า CI รันบน GitHub-hosted หรือ self-hosted runner (ไม่ใส่ `--runner` จะถามในเทอร์มินัล; self-hosted ใช้กับ repo private เท่านั้น — `docs/testing.md` "CI runners"), เติมค่า, ลบหัวข้อนี้ออกจาก README และลบสคริปต์ตัวเอง (ใช้ครั้งเดียว)
 3. `scripts/setup-ai.sh`
 4. `git add -A && git commit -m "chore: init from web-template"` แล้วเปิด PR
 5. ตัดสินใจ stack ใน `docs/adr/0001-stack.md` (รวมเรื่องหลายภาษาตาม `docs/ui.md`) แล้วเติม Makefile / Dockerfile

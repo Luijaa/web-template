@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# runs-on: GitHub-hosted or self-hosted is chosen once by scripts/init-project.sh --runner (docs/testing.md
+# "CI runners"); the template marks each job `# runner: x64|arm64` for the self-hosted mapping. No step bind-mounts the
+# checkout (a containerized runner talks to the host's Docker, where that path does not exist) — files go
+# into containers with `docker cp`, e.g. scripts/trivy.sh.
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -15,7 +20,7 @@ concurrency:
 jobs:
   # lint + unit tests + build — skipped until setup/lint/test are configured for the stack
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: x64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -59,7 +64,7 @@ jobs:
 
   # end-to-end tests on the production image (docs/testing.md) — skipped until `make e2e` is configured
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: x64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -87,7 +92,7 @@ jobs:
   # ZAP baseline (passive scan) of the production image: security headers, cookie flags, error leaks.
   # Rules in .zap/rules.tsv — only FAIL rules break the build. Skipped until `make dast` is configured.
   dast:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -115,7 +120,7 @@ jobs:
   # dependencies (lockfiles), committed secrets and Dockerfile/compose misconfig.
   # Accepted findings go in .trivyignore with a reason and an expiry.
   security:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -128,6 +133,6 @@ jobs:
           fi
       - name: trivy
         run: |
-          docker run --rm -v "$PWD:/src:ro" aquasec/trivy:0.74.0 fs --quiet --exit-code 1 \
+          scripts/trivy.sh fs --quiet --exit-code 1 \
             --scanners vuln,secret,misconfig --severity CRITICAL,HIGH --ignore-unfixed \
             --ignorefile /src/.trivyignore /src

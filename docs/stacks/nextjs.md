@@ -34,7 +34,7 @@ scripts/e2e.sh, scripts/dast.sh
 
 ```make
 COMPOSE ?= docker compose
-TRIVY ?= docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(CURDIR):/src:ro aquasec/trivy:0.74.0
+TRIVY ?= scripts/trivy.sh   # repo copied in as /src, no bind mount (docs/testing.md "CI runners")
 LICENSE_ARGS ?= --quiet --config /src/.trivy-license.yaml --ignorefile /src/.trivyignore-license.yaml \
 	--scanners license --severity CRITICAL,HIGH,UNKNOWN --exit-code 1
 IMAGE ?= $(shell $(COMPOSE) config --images)

@@ -55,7 +55,7 @@ CI รันใน job `check` หลัง `make build` — fail เมื่�
 ตั้งตอนเลือก stack (แทน recipe `not configured` ใน Makefile) — วิธีสแกนทั้งสองแบบทดสอบแล้วกับ trivy 0.74.0 (13 ต.ค. 2026) ส่วน recipe ให้ปรับชื่อ image/path ตามโปรเจกต์:
 
 ```make
-TRIVY = docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(CURDIR):/src:ro aquasec/trivy:0.74.0
+TRIVY = scripts/trivy.sh   # trivy in Docker, repo copied in as /src (no bind mount — docs/testing.md "CI runners")
 LICENSE_ARGS = --quiet --config /src/.trivy-license.yaml --ignorefile /src/.trivyignore-license.yaml \
 	--scanners license --severity CRITICAL,HIGH,UNKNOWN --exit-code 1
 
@@ -63,11 +63,10 @@ LICENSE_ARGS = --quiet --config /src/.trivy-license.yaml --ignorefile /src/.triv
 license: build
 	$(TRIVY) image $(LICENSE_ARGS) --pkg-types library <image ที่ make build สร้าง>
 
-# Go: binary ไม่มีข้อมูล license — สแกน go.mod พร้อม module cache แทน
+# Go: binary ไม่มีข้อมูล license — สแกน go.mod พร้อม module ที่ build ใช้ (GO_MODULES=1 copy เข้าไปให้)
 license:
 	go mod download
-	docker run --rm -e GOPATH=/gopath -v $(CURDIR):/src:ro -v $$(go env GOPATH):/gopath:ro \
-	  aquasec/trivy:0.74.0 fs $(LICENSE_ARGS) /src
+	GO_MODULES=1 $(TRIVY) fs $(LICENSE_ARGS) /src
 ```
 
 ตรวจว่า target จับได้จริง: เพิ่ม package GPL ชั่วคราวแล้ว `make license` ต้อง fail

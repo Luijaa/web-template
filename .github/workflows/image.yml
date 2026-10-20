@@ -32,7 +32,7 @@ env:
 jobs:
   guard:
     if: github.event_name != 'release'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     outputs:
       ready: ${{ steps.check.outputs.ready }}
     steps:
@@ -53,8 +53,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux/amd64, runner: ubuntu-24.04 }
-          - { platform: linux/arm64, runner: ubuntu-24.04-arm }
+          # native build per arch, no QEMU (self-hosted: init-project.sh swaps in the runner labels)
+          - { platform: linux/amd64, arch: amd64, runner: ubuntu-24.04 }
+          - { platform: linux/arm64, arch: arm64, runner: ubuntu-24.04-arm }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -87,8 +88,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.platform }}
       - name: trivy image
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/src:ro" aquasec/trivy:0.74.0 \
-            image --quiet --exit-code 1 --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed \
+          scripts/trivy.sh image --quiet --exit-code 1 --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed \
             --ignorefile /src/.trivyignore image-scan:local
       - id: build
         uses: docker/build-push-action@v7
@@ -107,22 +107,22 @@ jobs:
       - if: github.event_name == 'push'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: mkdir -p /tmp/digests && touch "/tmp/digests/${DIGEST#sha256:}"
+        run: rm -rf "$RUNNER_TEMP/digests" && mkdir -p "$RUNNER_TEMP/digests" && touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
       - if: github.event_name == 'push'
         uses: actions/upload-artifact@v7
         with:
-          name: digest-${{ matrix.runner }}
-          path: /tmp/digests/*
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
           retention-days: 1
 
   publish:
     needs: build
     if: github.event_name == 'push'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     steps:
       - uses: actions/download-artifact@v8
         with:
-          path: /tmp/digests
+          path: ${{ runner.temp }}/digests
           pattern: digest-*
           merge-multiple: true
       - uses: docker/setup-buildx-action@v4
@@ -131,7 +131,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - working-directory: /tmp/digests
+      - working-directory: ${{ runner.temp }}/digests
         run: |
           src=$(printf "$IMAGE@sha256:%s " *)
           # shellcheck disable=SC2086
@@ -142,7 +142,7 @@ jobs:
   # 3 sha-* images; delete older sha-* and untagged leftovers (multi-arch aware).
   cleanup:
     needs: publish
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     steps:
       - uses: dataaxiom/ghcr-cleanup-action@v1
         with:
@@ -154,7 +154,7 @@ jobs:
 
   release:
     if: github.event_name == 'release'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     steps:
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4

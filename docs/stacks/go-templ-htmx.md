@@ -64,8 +64,7 @@ dast: ## ZAP baseline scan of the running production image
 
 license: ## open-source license check
 	go mod download
-	docker run --rm -e GOPATH=/gopath -v $(CURDIR):/src:ro -v $$(go env GOPATH):/gopath:ro \
-	  aquasec/trivy:0.74.0 fs --quiet --config /src/.trivy-license.yaml --ignorefile /src/.trivyignore-license.yaml \
+	GO_MODULES=1 scripts/trivy.sh fs --quiet --config /src/.trivy-license.yaml --ignorefile /src/.trivyignore-license.yaml \
 	  --scanners license --severity CRITICAL,HIGH,UNKNOWN --exit-code 1 /src
 ```
 
@@ -156,7 +155,7 @@ r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 ## e2e และ DAST
 
 - `compose.e2e.yml`: service `web` (`build: {context: ., target: runner}`, env ทดสอบ, healthcheck), `e2e` (`mcr.microsoft.com/playwright:v<ตรงกับ e2e/package.json>-noble`, profile `test`) และ ✚ `zap` (profile `dast`, `docs/testing.md`)
-- `scripts/e2e.sh` ของต้นแบบ: สุ่มรหัสผ่าน → `up --wait web` → `exec web /app/server seed` → `run --rm --no-deps e2e` → `down -v --rmi local` เสมอ, project `-p <repo>-e2e-$$`
+- `scripts/e2e.sh` ของต้นแบบ: สุ่มรหัสผ่าน → `up --wait web` → `exec web /app/server seed` → `up --no-start --no-deps e2e` + `docker cp` เข้า/ออก + `docker start -a` (ไม่ bind mount — `docs/testing.md` "CI runners") → `down -v --rmi local` เสมอ, project `-p <repo>-e2e-$$`
 
 ## i18n และ theme (✚)
 

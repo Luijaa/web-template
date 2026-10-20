@@ -14,6 +14,23 @@
 
 PR merge ได้เมื่อทุก job เขียว (check, e2e, dast, security, image)
 
+## CI runners
+
+โปรเจกต์นี้รัน CI บน: **{{CI_RUNNERS}}**
+
+เลือกครั้งเดียวตอนสร้างโปรเจกต์ (`scripts/init-project.sh --runner github|self-hosted`) — เปลี่ยนทีหลังให้แก้ `runs-on` ใน `.github/workflows/*.yml` ตามตารางนี้ใน PR แยก:
+
+| job | GitHub-hosted | self-hosted |
+|---|---|---|
+| ci: `check`, `e2e` · image: build `linux/amd64` | `ubuntu-24.04` | `[self-hosted, Linux, X64]` |
+| image: build `linux/arm64` | `ubuntu-24.04-arm` | `[self-hosted, Linux, ARM64]` |
+| ci: `dast`, `security` · image: `guard`, `publish`, `cleanup`, `release` · `image-rescan` | `ubuntu-24.04` | `[self-hosted, Linux, ARM64]` (แบ่งงานให้ 2 เครื่องไม่ต่อคิวกัน) |
+
+- self-hosted: เลือกด้วย label มาตรฐานเท่านั้น ไม่อ้างชื่อเครื่อง; ต้องมี runner ทั้ง X64 และ ARM64 (build image แต่ละ arch บนเครื่อง arch นั้น ไม่ใช้ QEMU) และมี `docker` + buildx + compose, `git`, `make`, `python3`, `jq`, `openssl`, `gh`
+- **self-hosted ใช้กับ repo private เท่านั้น** — repo public ให้ PR จาก fork รันโค้ดบนเครื่องเราได้ (`init-project.sh` ปฏิเสธถ้าเห็นว่า repo เป็น public)
+- **ห้าม bind mount ไฟล์ใน repo เข้า container** ทั้งใน workflow, `scripts/` และ `compose.e2e.yml` (`-v "$PWD:/src"`, `-v $(CURDIR):…`, `./x:/y`): runner ที่เป็น container สั่ง Docker ของ host ซึ่งไม่มี path ของ checkout → container เห็น**โฟลเดอร์ว่างโดยไม่ error** (trivy สแกนว่างแล้วผ่าน) — ใช้ `docker create` → `docker cp` เข้า → `docker start -a` (ได้ exit code ของ container) → `docker cp` ผลออก; trivy ใช้ `scripts/trivy.sh` (copy repo เข้า `/src` ให้), mount `/var/run/docker.sock` ได้เพราะเป็น path ของ host
+- ไฟล์ชั่วคราวของ job ใช้ `$RUNNER_TEMP` ไม่ใช้ `/tmp/...` ตรง ๆ (self-hosted ไม่ล้าง `/tmp` ระหว่าง job)
+
 ## e2e (Playwright)
 
 รันกับ image ตัวเดียวกับที่ขึ้น production (Dockerfile target runner) ไม่ใช่ dev server — จับปัญหาแบบที่ unit test มองไม่เห็น เช่น หน้า login ไม่ hydrate, healthcheck, env หาย
@@ -35,7 +52,8 @@ PR merge ได้เมื่อทุก job เขียว (check, e2e, dast
 - หลายภาษา/theme/accessibility ตาม `docs/ui.md`: สลับภาษาแล้วข้อความ flow หลักเปลี่ยนและคงอยู่หลัง reload; สลับ theme แล้ว `<html data-theme>` เปลี่ยนและคงอยู่; `test.use({ colorScheme: 'dark' })` + โหมด system แสดงสีมืด; `@axe-core/playwright` (tags `wcag2a` `wcag2aa` `wcag21aa` `wcag22aa`) ไม่มี violation ในหน้าหลักทั้ง light และ dark
 - เลือก element ด้วยข้อความที่ผู้ใช้เห็น → ใช้ข้อความจากไฟล์แปลของภาษาที่ test ตั้งไว้ (ตั้ง `locale: 'th-TH'` ใน config ให้แน่นอน)
 - อัปเกรด Playwright: แก้ `e2e/package.json` และ tag image ใน `compose.e2e.yml` พร้อมกัน
-- รัน e2e ด้วย `docker compose run --rm --no-deps e2e` — ถ้าไม่ใส่ `--no-deps` compose บาง version จะ recreate `web` ที่ seed แล้ว (DB ว่าง → login ไม่ผ่านเฉพาะบน CI)
+- รัน e2e แบบไม่ bind mount (ดู "CI runners"): `up --no-start --no-deps e2e` → `docker cp e2e <container>:/src` → `docker start -a <container>` → `docker cp <container>:/tmp/out/. e2e/.results/` (service `e2e` ไม่มี `volumes:`, ตั้ง `E2E_OUT: /tmp/out` และ command `cp -r /src /tmp/e2e && rm -rf /tmp/e2e/node_modules /tmp/e2e/.results && cd /tmp/e2e && npm ci && npx playwright test`) — ห้ามลืม `--no-deps`: compose บาง version จะ recreate `web` ที่ seed แล้ว (DB ว่าง → login ไม่ผ่านเฉพาะบน CI)
+- test ที่สลับ theme แล้วตรวจ axe ต้องรอ CSS transition จบก่อน (`document.getAnimations().filter(a => a instanceof CSSTransition)` → `finished`) — runner เร็วจะตรวจเจอสีระหว่าง transition
 - `compose.e2e.yml` ตั้ง `TZ: Asia/Bangkok` เหมือน production และมี test อย่างน้อย 1 ข้อที่ตรวจว่าเวลาที่แสดงเป็นเวลาไทย (ข้อมูลข้ามเที่ยงคืน UTC เช่น 17:30Z → 00:30 วันถัดไป)
 - report อยู่ใน `e2e/.results/` (ขึ้นต้นด้วยจุด) — `actions/upload-artifact` ต้องใส่ `include-hidden-files: true`
 
@@ -71,8 +89,7 @@ PR merge ได้เมื่อทุก job เขียว (check, e2e, dast
     depends_on:
       web:
         condition: service_healthy
-    volumes:
-      - ./.zap/.results:/zap/wrk:rw
+    # no bind mount — scripts/dast.sh copies .zap/.results in as /zap/wrk and the report back out
     command: zap-baseline.py -t http://web:8080 -c rules.tsv -I -r report.html -J report.json
 ```
 
@@ -84,10 +101,16 @@ P="$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')-dast-$
 compose=(docker compose -p "$P" -f compose.e2e.yml)
 trap '"${compose[@]}" --profile dast down -v --remove-orphans --rmi local >/dev/null 2>&1 || true' EXIT
 rm -rf .zap/.results && mkdir -p .zap/.results && cp .zap/rules.tsv .zap/.results/
-chmod 777 .zap/.results            # ZAP runs as uid 1000; CI runner is 1001
+chmod 777 .zap/.results            # ZAP runs as uid 1000
 # set the env web needs to start (random secrets, as in scripts/e2e.sh)
 "${compose[@]}" up -d --build --wait web
-"${compose[@]}" --profile dast run --rm --no-deps zap < /dev/null   # exit 1 = a FAIL rule hit
+# rules in, report out with docker cp — no bind mount ("CI runners")
+"${compose[@]}" --profile dast up --no-start --no-deps zap < /dev/null
+cid="$("${compose[@]}" --profile dast ps -a -q zap)"
+docker cp .zap/.results "$cid:/zap/wrk"
+rc=0; docker start -a "$cid" < /dev/null || rc=$?   # exit 1 = a FAIL rule hit
+docker cp "$cid:/zap/wrk/." .zap/.results/ > /dev/null 2>&1 || true
+exit "$rc"
 ```
 
 - `-I` = ไม่ fail เพราะ WARN; exit 1 = มี FAIL; exit 3 = ZAP เองมีปัญหา (เช่น ต่อ `web` ไม่ได้)

@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   rescan:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04 # runner: arm64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -38,7 +38,7 @@ jobs:
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          mkdir -p /tmp/scan
+          scan="$RUNNER_TEMP/scan"; rm -rf "$scan"; mkdir -p "$scan"
           gh label create security --color B60205 --description "security finding" >/dev/null 2>&1 || true
           failed=0
           for tag in main latest; do
@@ -47,11 +47,10 @@ jobs:
             fi
             rows=""
             for platform in linux/amd64 linux/arm64; do
-              out="/tmp/scan/${tag}-${platform//\//-}.json"
-              docker run --rm -e TRIVY_USERNAME -e TRIVY_PASSWORD -v "$PWD:/src:ro" -v /tmp/scan:/tmp/scan \
-                aquasec/trivy:0.74.0 image --quiet --image-src remote --platform "$platform" \
+              out="$scan/${tag}-${platform//\//-}.json"
+              scripts/trivy.sh image --quiet --image-src remote --platform "$platform" \
                 --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed --ignorefile /src/.trivyignore \
-                --format json --output "$out" "$image:$tag"
+                --format json "$image:$tag" > "$out"
               rows+=$(jq -r --arg p "$platform" '.Results[]? | .Target as $t | .Vulnerabilities[]? |
                 "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion) | \($t) | \($p) |"' "$out")
               rows+=$'\n'
@@ -78,11 +77,11 @@ jobs:
               echo
               echo "**แก้:** อัปเดต base image/dependency ให้ถึงเวอร์ชัน \"แก้ใน\" (PR ของ Dependabot หรือเปิด PR เอง) → merge → \`:main\` ใหม่ → deploy dev; production ต้องออก release ใหม่ (docs/release.md)"
               echo "ยังแก้ไม่ได้: ใส่ \`.trivyignore\` พร้อมเหตุผล + \`exp:\` ผ่าน PR"
-            } > /tmp/scan/body.md
+            } > "$scan/body.md"
             if [ -n "$issue" ]; then
-              gh issue comment "$issue" --body-file /tmp/scan/body.md
+              gh issue comment "$issue" --body-file "$scan/body.md"
             else
-              gh issue create --title "$title" --label security --body-file /tmp/scan/body.md
+              gh issue create --title "$title" --label security --body-file "$scan/body.md"
             fi
           done
           if [ "$failed" = 1 ]; then
