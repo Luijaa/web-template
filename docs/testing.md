@@ -41,6 +41,7 @@ PR merge ได้เมื่อทุก job เขียว (check, e2e, dast
 - `compose.e2e.yml` — service `web` (build target runner + env ทดสอบ) และ `e2e` (`mcr.microsoft.com/playwright:vX.Y.Z-noble`, profile `test`)
 - `scripts/e2e.sh` — สุ่ม secret/รหัสผ่านทดสอบ → `up --wait` → seed → รัน Playwright → `down -v --rmi local` เสมอ
   - ใช้ compose project ไม่ซ้ำต่อรัน: `docker compose -p "$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')-e2e-$$" -f compose.e2e.yml` — หลาย agent (coder, coder2, reviewer) รัน e2e พร้อมกันใน worktree แยกบนเครื่องเดียว ถ้าใช้ `name:` ใน compose.e2e.yml อย่างเดียว ตัวหนึ่งจะสร้าง container ทับและ `down -v` ลบของอีกตัว
+  - รอบที่ถูก kill (tool timeout, Ctrl-C) ต้องเก็บกวาดเอง: `trap cleanup EXIT` + `trap "exit 130" INT` / `trap "exit 143" TERM` / `trap "exit 129" HUP`; SIGKILL ข้าม trap ได้ → เริ่ม script ด้วยการลบ project `*-e2e-<pid>` / `*-dast-<pid>` ที่ container ใหม่สุดเก่ากว่า 60 นาที (นานกว่า timeout ของ CI จึงไม่แตะรอบที่กำลังรันของ agent อื่นหรือ CI; ไม่ใช้ PID เพราะ runner ที่เป็น container อยู่คนละ PID namespace) — ตัวอย่างจริง: `scripts/test-env-gc.sh` ของ itms-app
   - ห้าม publish port ใน compose.e2e.yml (Playwright เรียก `web` ผ่าน network ของ compose) — port ที่ publish จะชนกันเมื่อรันพร้อมกัน
 - report เมื่อ fail: `e2e/.results/report/index.html` (CI แนบเป็น artifact `e2e-report`)
 
