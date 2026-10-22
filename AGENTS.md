@@ -47,7 +47,7 @@ scripts/    สคริปต์ช่วย (setup-ai.sh — รันหล�
 - ห้าม push ตรงเข้า `main` ห้าม force-push — ทุกอย่างผ่าน Pull Request และ **คนเป็นผู้ merge**
 - 1 งาน = 1 branch: `<type>/<id>-<slug>` (type: `feat` `fix` `chore` `docs` `test` `refactor`)
 - commit แบบ Conventional Commits: `feat(api): add incident export`
-- PR เล็ก ทำเรื่องเดียว อธิบายตาม `.github/pull_request_template.md` รวมหัวข้อ `## CHANGELOG` (ผลต่อผู้ใช้ 1 บรรทัด หรือ `-`) — ไม่แก้ `CHANGELOG.md` ใน PR งานปกติ ดู `docs/release.md`
+- PR เล็ก ทำเรื่องเดียว (เกณฑ์ขนาดใน `docs/design-process.md` หัวข้อ 4) อธิบายตาม `.github/pull_request_template.md` รวมหัวข้อ `## CHANGELOG` (ผลต่อผู้ใช้ 1 บรรทัด หรือ `-`) — ไม่แก้ `CHANGELOG.md` ใน PR งานปกติ ดู `docs/release.md`
 - **งานทุกชิ้นมี GitHub Issue** (backlog): PR ใส่ `Closes #<เลข>` เพื่อปิด issue เมื่อ merge — งานที่ไม่มี issue ให้เปิดก่อน (template `ฟีเจอร์`/`บั๊ก`)
 
 ## ทำงานร่วมกันหลาย agent
