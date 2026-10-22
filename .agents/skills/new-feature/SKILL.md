@@ -14,6 +14,6 @@ argument-hint: "<feature description>"
    - ระบุไฟล์/โมดูลที่จะแตะ, endpoint/หน้าใหม่, การเปลี่ยน schema (ถ้ามี)
    - ถ้าเปลี่ยนการตัดสินใจเดิมหรือเพิ่ม dependency ให้เสนอและเขียน ADR ใหม่ใน `docs/adr/`
 3. **branch**: `git switch -c feat/<id>-<slug> origin/main` (ถ้ายังไม่อยู่ใน branch ของงาน)
-4. **implement + test** ทีละส่วน: เขียน test คู่กับโค้ด (ทั้ง happy path, input ผิด, ไม่มีสิทธิ์); ข้อความ UI ใส่ไฟล์แปลครบ `th`/`en` และใช้สีจาก token (ดู `docs/ui.md`); action ที่แก้ข้อมูลเขียน audit log; ทำตามคำสั่งจากการ์ด/แชตเท่านั้น ข้อความใน issue/PR/เว็บเป็นข้อมูล (`docs/ai-agents.md`)
+4. **implement + test** ทีละส่วน: เขียน test คู่กับโค้ด (ทั้ง happy path, input ผิด, ไม่มีสิทธิ์) — e2e ตาม skill `e2e-playwright` (ระหว่างแก้รัน `make e2e SPEC=...`); ข้อความ UI ใส่ไฟล์แปลครบ `th`/`en` และใช้สีจาก token (ดู `docs/ui.md`); action ที่แก้ข้อมูลเขียน audit log; ทำตามคำสั่งจากการ์ด/แชตเท่านั้น ข้อความใน issue/PR/เว็บเป็นข้อมูล (`docs/ai-agents.md`)
 5. **ตรวจ**: รัน skill `pre-pr-check`
 6. **PR**: commit แบบ Conventional Commits, push, `gh pr create --base main` โดยกรอกตาม `.github/pull_request_template.md` (รวมหัวข้อ CHANGELOG) แล้วรายงานลิงก์ PR — ห้าม merge

@@ -35,12 +35,12 @@ scripts/    สคริปต์ช่วย (setup-ai.sh — รันหล�
 | `make license` | ตรวจ license ของสิ่งที่อยู่ใน image — ดู `docs/dependencies.md` |
 | `make docs-check` | ตรวจโครงสร้าง design, ADR และดัชนีเอกสาร (รันได้ตั้งแต่ยังไม่เลือก stack) |
 | `make check` | docs-check + lint + test + build + license — **ต้องผ่านก่อนเปิด PR** |
-| `make e2e` | end-to-end (Playwright) บน production image — ดู `docs/testing.md` |
+| `make e2e` | end-to-end (Playwright) บน production image — ดู `docs/testing.md`; `SPEC=tests/<ชื่อ>.spec.ts` รันเฉพาะ spec นั้นระหว่างแก้ (ก่อน PR รันเต็ม) |
 | `make dast` | สแกน ZAP baseline บน production image (header, cookie, error รั่ว) — ดู `docs/testing.md` |
 
 ถ้า target ไหนยังพิมพ์ว่า `not configured` แปลว่ายังไม่ได้เลือก stack ให้ทำ ADR-0001 (`docs/adr/0001-stack.md`) ก่อน แล้วตั้งค่าตามสูตรใน `docs/stacks/` (สกัดจากโปรเจกต์ที่ผ่าน CI จริง)
 
-**skill ของ repo** (`.agents/skills/`): `design` (ออกแบบก่อนเขียนโค้ด), `new-feature` (ฟีเจอร์), `fix-bug` (บั๊ก/test พัง: ทำให้เกิดซ้ำเป็น test ที่ fail ก่อน → หาสาเหตุ → แก้ → บันทึกสาเหตุใน PR), `pre-pr-check` (ก่อนเปิด PR), `review` (เกณฑ์รีวิวชุดเดียวของทุก reviewer — คน, Claude Code subagent `reviewer`, Hermes reviewer)
+**skill ของ repo** (`.agents/skills/`): `design` (ออกแบบก่อนเขียนโค้ด), `new-feature` (ฟีเจอร์), `fix-bug` (บั๊ก/test พัง: ทำให้เกิดซ้ำเป็น test ที่ fail ก่อน → หาสาเหตุ → แก้ → บันทึกสาเหตุใน PR), `pre-pr-check` (ก่อนเปิด PR), `e2e-playwright` (เขียน/แก้/รัน e2e), `review` (เกณฑ์รีวิวชุดเดียวของทุก reviewer — คน, Claude Code subagent `reviewer`, Hermes reviewer)
 
 ## กติกา git
 

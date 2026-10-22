@@ -43,18 +43,19 @@ PR merge ได้เมื่อทุก job เขียว (check, e2e, dast
   - ใช้ compose project ไม่ซ้ำต่อรัน: `docker compose -p "$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')-e2e-$$" -f compose.e2e.yml` — หลาย agent (coder, coder2, reviewer) รัน e2e พร้อมกันใน worktree แยกบนเครื่องเดียว ถ้าใช้ `name:` ใน compose.e2e.yml อย่างเดียว ตัวหนึ่งจะสร้าง container ทับและ `down -v` ลบของอีกตัว
   - รอบที่ถูก kill (tool timeout, Ctrl-C) ต้องเก็บกวาดเอง: `trap cleanup EXIT` + `trap "exit 130" INT` / `trap "exit 143" TERM` / `trap "exit 129" HUP`; SIGKILL ข้าม trap ได้ → เริ่ม script ด้วยการลบ project `*-e2e-<pid>` / `*-dast-<pid>` ที่ container ใหม่สุดเก่ากว่า 60 นาที (นานกว่า timeout ของ CI จึงไม่แตะรอบที่กำลังรันของ agent อื่นหรือ CI; ไม่ใช้ PID เพราะ runner ที่เป็น container อยู่คนละ PID namespace) — ตัวอย่างจริง: `scripts/test-env-gc.sh` ของ itms-app
   - ห้าม publish port ใน compose.e2e.yml (Playwright เรียก `web` ผ่าน network ของ compose) — port ที่ publish จะชนกันเมื่อรันพร้อมกัน
-- report เมื่อ fail: `e2e/.results/report/index.html` (CI แนบเป็น artifact `e2e-report`)
+  - รับ `SPEC="tests/<ชื่อ>.spec.ts[:บรรทัด] ..."` เพื่อรันเฉพาะ spec ระหว่างแก้ (~1 นาทีแทนทั้งชุด): Makefile `SPEC="$(SPEC)" ./scripts/e2e.sh`, script ตรวจทุกคำด้วย `^tests/[A-Za-z0-9_.-]+\.spec\.ts(:[0-9]+)?$` แล้ว `export E2E_SPEC`, service `e2e` มี `E2E_SPEC: ${E2E_SPEC:-}` และ command `npx playwright test $${E2E_SPEC}` — ไม่ใส่ SPEC = ทั้งชุด (CI และก่อนเปิด PR)
+- report เมื่อ fail: `e2e/.results/report/index.html` (CI แนบเป็น artifact `e2e-report`); ต่อ test: `e2e/.results/test-results/<test>/error-context.md` — วิธีเขียน/แก้ test อยู่ใน skill `e2e-playwright`
 
 กติกา:
 
 - ฟีเจอร์ที่ผู้ใช้เห็น ต้องมี e2e อย่างน้อย 1 เส้นของ flow หลักใน PR เดียวกัน
 - เลือก element ด้วย role/ข้อความที่ผู้ใช้เห็น หรือ `id` ของ form — ไม่ใช้ class CSS
-- test ต้องไม่พึ่งข้อมูลจาก test อื่น (สร้างข้อมูลเองด้วยชื่อไม่ซ้ำ)
+- test ต้องไม่พึ่งข้อมูลจาก test อื่น (สร้างข้อมูลเองด้วยชื่อไม่ซ้ำ) และไม่เปลี่ยน preference ของ user seed (ภาษา, theme) ค้างไว้ — ไฟล์ spec รันขนานหลาย worker จึงไปกระทบ spec อื่น
 - หลายภาษา/theme/accessibility ตาม `docs/ui.md`: สลับภาษาแล้วข้อความ flow หลักเปลี่ยนและคงอยู่หลัง reload; สลับ theme แล้ว `<html data-theme>` เปลี่ยนและคงอยู่; `test.use({ colorScheme: 'dark' })` + โหมด system แสดงสีมืด; `@axe-core/playwright` (tags `wcag2a` `wcag2aa` `wcag21aa` `wcag22aa`) ไม่มี violation ในหน้าหลักทั้ง light และ dark
 - เลือก element ด้วยข้อความที่ผู้ใช้เห็น → ใช้ข้อความจากไฟล์แปลของภาษาที่ test ตั้งไว้ (ตั้ง `locale: 'th-TH'` ใน config ให้แน่นอน)
 - อัปเกรด Playwright: แก้ `e2e/package.json` และ tag image ใน `compose.e2e.yml` พร้อมกัน
 - รัน e2e แบบไม่ bind mount (ดู "CI runners"): `up --no-start --no-deps e2e` → `docker cp e2e <container>:/src` → `docker start -a <container>` → `docker cp <container>:/tmp/out/. e2e/.results/` (service `e2e` ไม่มี `volumes:`, ตั้ง `E2E_OUT: /tmp/out` และ command `cp -r /src /tmp/e2e && rm -rf /tmp/e2e/node_modules /tmp/e2e/.results && cd /tmp/e2e && npm ci && npx playwright test`) — ห้ามลืม `--no-deps`: compose บาง version จะ recreate `web` ที่ seed แล้ว (DB ว่าง → login ไม่ผ่านเฉพาะบน CI)
-- test ที่สลับ theme แล้วตรวจ axe ต้องรอ CSS transition จบก่อน (`document.getAnimations().filter(a => a instanceof CSSTransition)` → `finished`) — runner เร็วจะตรวจเจอสีระหว่าง transition
+- test ที่สลับ theme แล้วตรวจ axe ต้องรอ CSS transition จบก่อน (`document.getAnimations().filter(a => a instanceof CSSTransition)` → `finished`, ใส่เป็น `transitionsDone(page)` ใน `e2e/tests/helpers.ts`) — runner เร็วจะตรวจเจอสีระหว่าง transition
 - `compose.e2e.yml` ตั้ง `TZ: Asia/Bangkok` เหมือน production และมี test อย่างน้อย 1 ข้อที่ตรวจว่าเวลาที่แสดงเป็นเวลาไทย (ข้อมูลข้ามเที่ยงคืน UTC เช่น 17:30Z → 00:30 วันถัดไป)
 - report อยู่ใน `e2e/.results/` (ขึ้นต้นด้วยจุด) — `actions/upload-artifact` ต้องใส่ `include-hidden-files: true`
 
