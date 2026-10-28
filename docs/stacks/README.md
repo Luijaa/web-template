@@ -16,6 +16,7 @@
 3. คัดลอกไฟล์ตามสูตร แทนที่ recipe `not configured` ใน `Makefile` ทุก target (`setup`, `lint`, `test`, `e2e`, `dast`, `license`) และแก้ `CONTEXT`/`TARGET` ใน `.github/workflows/image.yml`
 4. `make check`, `make e2e`, `make dast` ต้องผ่านใน PR scaffold — CI ข้าม job ที่ยัง `not configured` เท่านั้น
 5. อัปเดตตาราง container ใน `docs/architecture.md`
+6. ติดตั้ง skill ของ stack: คัดลอก `skills/<stack>/*` ไป `.agents/skills/` (หัวข้อ "skill ของ stack" ในแต่ละสูตร) — stack ที่ยังไม่มีชุดสำเร็จรูป เขียนตามชุดที่อนุมัติใน ADR-0001 แล้วส่งกลับมาเก็บที่ `skills/<stack>/`
 
 ## สิ่งที่ทุกสูตรต้องมี (เช็คก่อนเปิด PR scaffold)
 

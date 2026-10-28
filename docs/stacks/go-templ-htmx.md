@@ -32,6 +32,19 @@ Dockerfile, compose.yml, compose.dev.yml, compose.prod.yml, compose.e2e.yml
 | golangci-lint | v2.14.0 | GPL-3.0 (เครื่องมือ dev ไม่อยู่ใน image — ใช้ได้) | ✚ ต้นแบบยังใช้ v1.64 |
 | go-i18n | v2.6 | MIT | ✚ i18n + CLDR plural |
 
+## skill ของ stack
+
+คัดลอก `docs/stacks/skills/go-templ-htmx/*` ไปที่ `.agents/skills/` ใน PR scaffold แล้วตรวจเวอร์ชันในแต่ละไฟล์ให้ตรง `go.mod` (เช่น htmx ใน `htmx-web-patterns`):
+
+| skill | ใช้เมื่อ |
+|---|---|
+| `templ-go-patterns` | เขียน/แก้ `.templ` และ render ใน handler |
+| `htmx-web-patterns` | partial update, polling, modal, `hx-boost`, response header ของ htmx |
+| `sqlite-go-modernc` | DSN/PRAGMA, connection pool, migration ด้วย goose |
+| `go-testing-patterns` | table-driven test, `httptest` กับ chi, test helper, เวลา/timezone |
+
+เพิ่มตัวที่โปรเจกต์ต้องการ (เช่น `pre-pr-check-go` ตาม ADR ของโปรเจกต์) ใน PR แยก พร้อม `source:`
+
 ## Makefile
 
 ```make

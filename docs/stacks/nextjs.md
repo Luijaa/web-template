@@ -30,6 +30,10 @@ scripts/e2e.sh, scripts/dast.sh
 | next-intl | 4.x | MIT | ✚ i18n แบบ ICU MessageFormat |
 | eslint-plugin-security | ล่าสุดที่ ≥ 14 วัน | Apache-2.0 | ✚ SAST |
 
+## skill ของ stack
+
+ยังไม่มีชุดสำเร็จรูป — PR ตั้ง stack ต้องเขียน skill ตามชุดที่อนุมัติใน ADR-0001 (`docs/design-process.md` กิ่ง C) ลง `.agents/skills/` แล้วคัดลอกกลับมาไว้ที่ `docs/stacks/skills/nextjs/`
+
 ## Makefile
 
 ```make
