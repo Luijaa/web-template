@@ -12,6 +12,7 @@ description: Run the full pre-PR checklist (make check, secret scan, docs, diff 
 
    และ `make e2e` แบบเต็ม (ไม่ใส่ `SPEC`) ถ้าเปลี่ยนสิ่งที่ผู้ใช้เห็น (เพิ่ม/แก้ e2e ด้วย — skill `e2e-playwright`) และ `make dast` ถ้าแตะ middleware, header, cookie, หน้า error หรือ route ใหม่
 2. `git diff origin/main...HEAD --stat` — ดูว่าแตะเฉพาะไฟล์ที่เกี่ยวกับงาน ไม่มีไฟล์หลุด (build output, .env, ไฟล์ส่วนตัว)
+   และ `make pr-size` ต้องไม่เกิน ~800 (`docs/design-process.md` หัวข้อ 4) — ใส่บรรทัดแรกของผลลัพธ์ใน PR description; เกิน = ห้ามเปิด PR เสนอวิธีแตกเป็นหลาย PR (ยกเว้น PR ตั้ง stack ครั้งแรกที่คนอนุมัติไว้ — เขียนเหตุผลใน PR)
 3. log ชั่วคราวที่ลืมลบ: `git diff origin/main...HEAD | grep -n '\[DBG-'` ต้องไม่เจอ (`fix-bug` ข้อ 3)
 4. หา secret ใน diff: `git diff origin/main...HEAD | grep -nEi '(api[_-]?key|secret|token|password|BEGIN .*PRIVATE KEY)'` — ถ้าเจอให้หยุดและแจ้ง
 5. ตัวแปร env ใหม่อยู่ใน `.env.example` ครบ

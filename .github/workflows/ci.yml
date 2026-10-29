@@ -91,6 +91,20 @@ jobs:
 
   # ZAP baseline (passive scan) of the production image: security headers, cookie flags, error leaks.
   # Rules in .zap/rules.tsv — only FAIL rules break the build. Skipped until `make dast` is configured.
+  # slice-size rule (docs/design-process.md section 4) on every PR — warns, never fails
+  pr-size:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04 # runner: arm64
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: pr size
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: ./scripts/pr-size.sh --base "origin/$BASE_REF" --warn | tee -a "$GITHUB_STEP_SUMMARY"
+
   dast:
     runs-on: ubuntu-24.04 # runner: arm64
     timeout-minutes: 20

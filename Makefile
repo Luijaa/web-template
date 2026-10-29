@@ -1,6 +1,6 @@
 # Single entry point for humans, agents and CI.
 # Replace each "not configured" recipe once the stack is chosen (see docs/adr/0001-stack.md).
-.PHONY: help setup lint test e2e dast build license docs-check release-draft up down check
+.PHONY: help setup lint test e2e dast build license docs-check pr-size release-draft up down check
 
 COMPOSE ?= docker compose
 
@@ -30,6 +30,9 @@ license: ## open-source license check (docs/dependencies.md)
 
 docs-check: ## structure of design docs, ADRs and the docs index (docs/design-process.md)
 	python3 scripts/check-docs.py
+
+pr-size: ## non-test lines added vs main — slice-size rule ~800 (docs/design-process.md section 4)
+	./scripts/pr-size.sh
 
 release-draft: ## draft the next CHANGELOG section from merged PRs — prints only (docs/release.md)
 	python3 scripts/prepare-release.py
