@@ -31,6 +31,7 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 
 **A. ทุก PR**
 - CI เขียวทุก job ที่ repo มี (check, e2e, dast, security, image) — แดง/ยังรัน = ยังผ่านไม่ได้
+- AC ใน PR ตรงกับ issue **ตัวต่อตัว** (`gh issue view <n> --json body`) — ข้อที่ถูกเขียนใหม่/ตัด/ลดขอบเขต (ตัวเลข ช่วงเวลา จำนวน หายไป) โดยไม่มีคนแก้ issue = **ต้องแก้**; ตรวจแต่ละข้อจากข้อมูลและโค้ดที่ใช้จริง ไม่ใช่จาก checkbox
 - acceptance criteria ทุกข้อมี test (unit หรือ e2e) ครอบ; สิ่งที่ผู้ใช้เห็นมี e2e; test ทดสอบพฤติกรรมจริง ไม่ใช่ผ่านเสมอ
 - ขนาด: `make pr-size` บน branch ของ PR (หรือดู warning `PR size` ใน CI) — เกิน ~800 โดยไม่มีเหตุผลที่คนอนุมัติใน PR = **ต้องแก้** (เสนอวิธีแตก)
 - PR มี `Closes #<issue>` (หรือ `Refs`), หัวข้อ `## CHANGELOG` ตรงกับที่เปลี่ยนจริง (หรือ `-`) และ PR งานปกติไม่แก้ `CHANGELOG.md`
