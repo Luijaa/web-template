@@ -69,6 +69,7 @@ Q2 — เหตุการณ์ขอบ: ช่างลาออกระ�
   - เวอร์ชันและ license ตาม `docs/dependencies.md` (แกนหลักสาย N-1 + วัน EOL, library ≥ 14 วัน)
   - ต้องรองรับ: หลายภาษา + light/dark (`docs/ui.md`), test/e2e ง่าย, library ยังมีคนดูแล
   - ชุด skill ของ stack 3–6 ตัว แต่ละตัวมี `source:` — มีชุดสำเร็จรูปใน `docs/stacks/skills/<stack>/` ให้ใช้ชุดนั้น แยก "คัดลอก" กับ "ต้องเขียนใหม่" ให้ชัด; ชุดที่อนุมัติบันทึกใน ADR-0001
+  - ทางเลือกที่มีสูตรใน `docs/stacks/` มาก่อน; ทางที่ไม่มีสูตรต้องบอกคนตอนเทียบว่า "ต้องเขียนสูตรก่อน หรือคนรับความเสี่ยงและบันทึกใน ADR-0001" (`docs/stacks/README.md` วิธีใช้ ข้อ 1)
   - งบทรัพยากรต่อ service (RAM/CPU ขณะรันจริง) + ขนาด image
   → **จุดอนุมัติ 2: stack + DB + UI + skill + งบทรัพยากร**
 - **D Data model** (6): ตาราง, ฟิลด์หลัก, ความสัมพันธ์, unique/บังคับ/index, ชื่อตาม `CONTEXT.md`, ER diagram (mermaid `erDiagram`), ตาราง audit

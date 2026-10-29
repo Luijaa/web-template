@@ -18,7 +18,7 @@
 | [`deploy-prod.md`](deploy-prod.md) | how-to | เตรียมเครื่องและ deploy/rollback production |
 | [`release.md`](release.md) | how-to | เตรียม CHANGELOG และปล่อยเวอร์ชัน, ดู SBOM |
 | [`backup.md`](backup.md) | how-to | backup และซ้อมกู้คืน |
-| [`stacks/`](stacks/README.md) | how-to | สูตรตั้ง Makefile/Dockerfile/compose/health/e2e ตาม stack (Go+Templ+HTMX, Next.js) |
+| [`stacks/`](stacks/README.md) | how-to | สูตรตั้ง Makefile/Dockerfile/compose/health/e2e ตาม stack (Go+Templ+HTMX, Go+Vue SPA, Next.js) |
 | [`testing.md`](testing.md) | reference | ชั้นการทดสอบ, SAST/DAST, วิธีเขียน e2e |
 | [`dependencies.md`](dependencies.md) | reference | นโยบายเวอร์ชันและ license |
 | [`standards.md`](standards.md) | reference | มาตรฐานที่ใช้ และกฎอยู่ไฟล์ไหน |

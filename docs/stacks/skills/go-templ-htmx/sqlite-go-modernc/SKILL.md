@@ -82,5 +82,7 @@ description: SQLite configuration and management using modernc.org/sqlite pure G
   }
   ```
 - migration ที่ merge แล้วห้ามแก้ — เปลี่ยน schema ด้วยไฟล์ใหม่เสมอ
+- ทุกตารางมาจาก migration ตั้งแต่ตารางแรก (ห้าม `CREATE TABLE` ในโค้ดตอนเริ่มแอป) และส่วน Up ห้าม `IF NOT EXISTS`/`IF EXISTS` — schema ไม่ตรงต้อง error ทันที ไม่ข้ามเงียบแล้วไปล้มที่คำสั่งถัดไป
+- test ใช้ `goose.Up` ชุดเดียวกับของจริงบน `:memory:` — ห้ามสร้างตารางใน test แยก
 
 source: เขียนเองจาก https://pkg.go.dev/modernc.org/sqlite, https://www.sqlite.org/wal.html, และ https://github.com/pressly/goose (อ่านเมื่อ 2026-10-13) — ต้นแบบ itms-app (`luija-dev/itms-app` `eb2e290`)
