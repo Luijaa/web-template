@@ -14,6 +14,7 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 
 - `AGENTS.md`, `CONTEXT.md`, การตัดสินใจ (`docs/adr/` หรือ `DECISIONS.md` ใน repo เก่า)
 - กฎใน `.agents/rules/` (repo เก่า: `.claude/rules/`) ที่ `paths:` ตรงกับไฟล์ที่เปลี่ยน
+- skill ของ stack ใน `.agents/skills/` ที่เกี่ยวกับไฟล์ที่เปลี่ยน (เช่น `sqlite-go-modernc`, `*-patterns`) — ข้อ "ห้าม" ในนั้นที่ diff ทำ = **ต้องแก้**
 - issue/การ์ด: acceptance criteria ทุกข้อ; ถ้า PR มีบรรทัด `Design:` อ่านไฟล์ design นั้น
 - diff: `gh pr diff <n>` หรือ `git diff origin/main...HEAD`; CI: `gh api "repos/<owner>/<repo>/actions/runs?head_sha=<sha ของ head PR>"` ทุก workflow `completed/success` + `gh run view <id> --log-failed` (ใช้ได้กับ fine-grained token; `gh pr checks` ต้องใช้ token ที่อ่าน check ได้ — ถ้าได้ "Resource not accessible" ให้ใช้วิธีนี้)
 
@@ -81,6 +82,13 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 
 **K. เอกสาร**
 - ไฟล์ใหม่ใน `docs/` อยู่ในดัชนี `docs/README.md`; โครงสร้างเปลี่ยนแต่รูป C4 ใน `docs/architecture.md` ไม่เปลี่ยน = **ต้องแก้**
+
+**L. DB migration** — diff เพิ่ม/แก้ไฟล์ migration หรือโค้ดที่สร้าง schema
+- ไฟล์ migration ที่ merge แล้วไม่ถูกแก้; ตารางใหม่มาจาก migration ไม่ใช่โค้ดตอนเริ่มแอป
+- ส่วน Up ไม่มี `IF NOT EXISTS`/`IF EXISTS` (schema ไม่ตรงต้อง error ทันที — บทเรียน: ตารางเก่าที่ไม่ได้มาจาก migration ทำให้ `CREATE TABLE IF NOT EXISTS` ข้ามเงียบแล้วไปล้มที่ `CREATE INDEX` ตอน deploy dev)
+- Down ย้อนได้จริงและมี test (up → down → up) ถ้า repo มีชุด test migration; ลบ/เปลี่ยนชื่อคอลัมน์บน SQLite ทำแบบ rebuild table ตามขั้นตอนที่ปลอดภัยกับ foreign key
+- DB ที่ deploy อยู่แล้ว (dev) migrate ได้จริงจาก schema ปัจจุบัน — ถ้าไม่ได้ (เช่น schema เก่าไม่ได้มาจาก migration) PR ต้องบอกวิธีจัดการ DB dev
+- ขาดข้อใด = **ต้องแก้**
 
 ## 4. รายงาน
 

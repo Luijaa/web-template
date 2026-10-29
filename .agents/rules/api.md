@@ -12,7 +12,8 @@ paths:
 - **`HEAD` คู่กับ `GET` ทุก route** (RFC 9110 §9.3.2): ตอบ status และ header (`Content-Type`, `Vary`, security header) เหมือน `GET` แต่ไม่มี body, ผ่าน middleware ตรวจสิทธิ์ชุดเดียวกับ `GET` — ห้ามตอบ 405 (uptime monitor, load balancer และ `curl -I` ใช้ `HEAD`); router ที่ไม่ทำให้เอง ต้องเปิดเอง เช่น chi `r.Use(middleware.GetHead)`; route ที่รับแค่ `POST` ยังตอบ `HEAD` เป็น 405 ได้
 - JSON API ที่ระบบอื่นเรียก: มีสเปก OpenAPI 3.1 ใน repo และแก้ใน PR เดียวกับ endpoint
 - SQL ผ่าน query builder/ORM หรือ parameterized query เท่านั้น ห้ามต่อ string
-- เปลี่ยน schema ฐานข้อมูลด้วย migration ไฟล์ใหม่เสมอ ห้ามแก้ migration ที่ merge ไปแล้ว
+- เปลี่ยน schema ฐานข้อมูลด้วย migration ไฟล์ใหม่เสมอ ห้ามแก้ migration ที่ merge ไปแล้ว; schema ตั้งแต่ตารางแรกต้องมาจาก migration (ห้ามสร้างตารางในโค้ดตอนเริ่มแอป)
+- ในส่วน Up ของ migration ห้ามใช้ `IF NOT EXISTS`/`IF EXISTS` — ถ้า schema ใน DB ไม่ตรงกับที่ migration คาด ต้อง error ทันทีตรงคำสั่งนั้น ไม่ใช่ข้ามไปเงียบ ๆ แล้วไปพังที่คำสั่งถัดไปหรือตอนรัน (Down ใช้ `IF EXISTS` ได้)
 - เก็บเวลาเป็น UTC, รับ/ส่งเป็น ISO 8601 พร้อม timezone; ขอบเขตวัน/เดือนในการ query และรายงานคิดตาม Asia/Bangkok (แปลงเป็น UTC ก่อน query)
 - config ทั้งหมดมาจาก environment variable และต้องมีใน `.env.example`
 - log เป็น JSON บรรทัดเดียว ห้าม log password/token/ข้อมูลส่วนบุคคล
