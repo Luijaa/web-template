@@ -72,7 +72,7 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 **H. design** (`docs/design-process.md`)
 - PR `docs(design): …`: เช็คลิสต์หัวข้อ 3.3 + `make docs-check` (repo ที่ยังไม่มี target: `python3 <web-template>/scripts/check-docs.py <repo>`) + ไม่มีโค้ดปน
 - PR โค้ดของงานที่เข้าเกณฑ์ต้อง design: ไม่มี design ที่ `approved`, หรือโค้ดไม่ตรง journey/ตารางสิทธิ์/สถานะ/data model/threat model โดยไม่แก้ไฟล์ design ใน PR เดียวกัน = **ต้องแก้**
-- PR ตั้ง stack (ครั้งแรกที่ใส่ Makefile/Dockerfile จริง): ทำตามสูตรใน `docs/stacks/` หรือ ADR-0001 มีบรรทัด `ไม่มีสูตร: … รับความเสี่ยง` + PR มีตาราง "สิ่งที่ทุกสูตรต้องมี" (`docs/stacks/README.md`) ครบทุกข้อ — ขาด = **ต้องแก้**
+- PR ตั้ง stack (ครั้งแรกที่ใส่ Makefile/Dockerfile จริง): ทำตามสูตรใน `docs/stacks/` หรือ ADR-0001 มีบรรทัด `ไม่มีสูตร: …` + PR มีตาราง "สิ่งที่ทุกสูตรต้องมี" (`docs/stacks/README.md`) ครบทุกข้อ — ขาด = **ต้องแก้**
 
 **I. PR แก้บั๊ก** (skill `fix-bug`)
 - มี test ที่จำลองบั๊ก + หลักฐาน fail ก่อนแก้/ผ่านหลังแก้, หัวข้อ `## สาเหตุ` อธิบายกลไกพร้อม `ไฟล์:บรรทัด` (ไม่ใช่แค่อาการ), ไม่ลด assertion/ข้าม test/ผ่อนการตรวจ — ขาดข้อใด = **ต้องแก้**
