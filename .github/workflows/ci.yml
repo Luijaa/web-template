@@ -104,6 +104,13 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: ./scripts/pr-size.sh --base "origin/$BASE_REF" --warn | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: decisions
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          ./scripts/decision-check.sh --base "origin/$BASE_REF" --body "$RUNNER_TEMP/pr-body.md" | tee -a "$GITHUB_STEP_SUMMARY"
 
   dast:
     runs-on: ubuntu-24.04 # runner: arm64

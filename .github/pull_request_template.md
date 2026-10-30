@@ -10,6 +10,11 @@ Design: <!-- docs/design/<slug>.md (approved) หรือ "ไม่ต้อ�
 <!-- คัดลอกจาก issue ตรงตัวทุกข้อ ห้ามเขียนใหม่/ตัด/ลดขอบเขต — ข้อที่ยังไม่ครบปล่อย [ ] พร้อมเหตุผล; เปลี่ยน AC = แก้ที่ issue -->
 - [ ] 
 
+## การตัดสินใจ
+<!-- ตัวกระตุ้นใน docs/adr/README.md (+ ผล make decision-check): แต่ละข้อ → ADR-NNNN หรือ "ไม่ต้อง ADR: <เหตุผล>"; ไม่มีตัวกระตุ้น → ไม่มี
+     เอกสารที่แก้คู่กัน: env → .env.example + README + docs/deploy-prod.md, ตารางใหม่ → data model ใน docs/design, ระบบภายนอก/container ใหม่ → docs/architecture.md, รูปแบบข้อมูลที่ระบบอื่นใช้ → docs/reference -->
+ไม่มี
+
 ## ทดสอบยังไง
 <!-- คำสั่งที่รัน + ผล, ขั้นตอนลองบน dev -->
 
@@ -33,5 +38,6 @@ Fixed:
 - [ ] action ใหม่ที่แก้ข้อมูล/สิทธิ์ มี audit log และ test (`.agents/rules/api.md`)
 - [ ] dependency/skill/MCP ใหม่: ตรวจแล้วว่ามีจริงใน registry และ repo ตรง (`docs/ai-agents.md`)
 - [ ] แก้ไฟล์กฎกลาง (`AGENTS.md`, `.claude/**`, `.agents/**`, `.github/**`, `Makefile`, `scripts/**`): ระบุให้คนอ่าน diff ก่อน merge
-- [ ] อัปเดต docs (ดัชนี `docs/README.md`, รูป C4 ถ้าโครงสร้างเปลี่ยน) / ADR ใน `docs/adr/` (ถ้ามีการตัดสินใจใหม่)
+- [ ] `make decision-check` ผ่าน และหัวข้อ "การตัดสินใจ" ตอบตัวกระตุ้นครบ (ADR ใน `docs/adr/` + ดัชนี)
+- [ ] อัปเดต docs ที่ต้องแก้คู่กัน (README, `.env.example`, `docs/deploy-prod.md`, data model ใน design, รูป C4, `docs/reference/`, ดัชนี `docs/README.md`)
 - [ ] ผ่าน reviewer แล้ว

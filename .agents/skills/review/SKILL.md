@@ -36,7 +36,7 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 - ขนาด: `make pr-size` บน branch ของ PR (หรือดู warning `PR size` ใน CI) — เกิน ~800 โดยไม่มีเหตุผลที่คนอนุมัติใน PR = **ต้องแก้** (เสนอวิธีแตก)
 - PR มี `Closes #<issue>` (หรือ `Refs`), หัวข้อ `## CHANGELOG` ตรงกับที่เปลี่ยนจริง (หรือ `-`) และ PR งานปกติไม่แก้ `CHANGELOG.md`
 - ชื่อ model/ฟิลด์/สถานะ/ข้อความ UI ตาม `CONTEXT.md` (ไม่มีคำใน _ห้ามใช้_); ตรงกับ ADR/DECISIONS
-- การตัดสินใจใหม่ที่ครบ 3 ข้อใน `docs/adr/README.md` แต่ไม่มี ADR = **ต้องแก้**
+- รัน `make decision-check` (หรือดูผล step `decisions` ใน CI) แล้วไล่ diff หา**ตัวกระตุ้น**ทุกข้อใน `docs/adr/README.md` เอง (สคริปต์จับไม่ได้ทุกข้อ: secret ในคอลัมน์ JSON, ระบบภายนอกใหม่, โค้ดที่ทำต่างจากข้อความใน ADR/design) — ตัวกระตุ้นที่ไม่มี ADR (ใหม่หรือเดิมที่ครอบคลุม) หรือ PR ไม่มีหัวข้อ `## การตัดสินใจ` = **ต้องแก้**; โค้ดขัดกับ ADR/design ที่อนุมัติแล้วโดยไม่มี ADR ใหม่ = **ต้องแก้** แม้โค้ดจะดีกว่า
 - PR เตรียม release (`docs: CHANGELOG for vX.Y.Z`): ครบทุก PR ตั้งแต่ tag ล่าสุด (เทียบกับ `make release-draft`), เลขเวอร์ชันตาม SemVer ใน `docs/release.md`, ไม่แก้เนื้อหาเวอร์ชันที่ปล่อยแล้ว
 - ไม่มี secret, ไม่มีตัวอักษรซ่อน, ไม่มี comment/เอกสาร/fixture ที่พูดสั่ง AI, ไม่เหลือ `[DBG-`
 
@@ -82,8 +82,13 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 - อ่านทุกบรรทัด: ห้ามมีคำสั่งให้ข้ามกฎ, ส่งข้อมูลออกนอก, อ่าน/พิมพ์ secret, ปิด test/security, ดาวน์โหลดแล้วรัน script; skill/MCP มี `source:` และ pin commit/เวอร์ชันถ้ามาจากภายนอก
 - เขียนบรรทัดแรกของรายงาน: **"คนต้องอ่าน diff ไฟล์กฎกลางก่อน merge"**
 
-**K. เอกสาร**
-- ไฟล์ใหม่ใน `docs/` อยู่ในดัชนี `docs/README.md`; โครงสร้างเปลี่ยนแต่รูป C4 ใน `docs/architecture.md` ไม่เปลี่ยน = **ต้องแก้**
+**K. เอกสาร** — เอกสารที่ต้องแก้คู่กับโค้ด ขาดข้อใด = **ต้องแก้**
+- env ใหม่/เลิกใช้ → `.env.example` + ตาราง env ใน README + `docs/deploy-prod.md` (`make decision-check` ต้องผ่าน)
+- migration/ตารางใหม่ → data model ใน `docs/design/<slug>.md`
+- ระบบภายนอกใหม่, container ใหม่, หรือเปลี่ยนวิธีสื่อสาร (เช่น polling ↔ SSE) → รูป C4 ใน `docs/architecture.md`
+- รูปแบบข้อมูลที่ระบบอื่นใช้ (payload webhook, format import/export, API สาธารณะ) → เอกสาร reference ใน `docs/reference/` (API: OpenAPI ตาม `.agents/rules/api.md`)
+- สิทธิ์ container, volume, ขั้นตอน deploy/backup เปลี่ยน → `docs/deploy-prod.md`, `docs/backup.md`
+- ไฟล์ใหม่ใน `docs/` อยู่ในดัชนี `docs/README.md`
 
 **L. DB migration** — diff เพิ่ม/แก้ไฟล์ migration หรือโค้ดที่สร้าง schema
 - ไฟล์ migration ที่ merge แล้วไม่ถูกแก้; ตารางใหม่มาจาก migration ไม่ใช่โค้ดตอนเริ่มแอป

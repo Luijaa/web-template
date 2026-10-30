@@ -15,10 +15,10 @@ description: Run the full pre-PR checklist (make check, secret scan, docs, diff 
    และ `make pr-size` ต้องไม่เกิน ~800 (`docs/design-process.md` หัวข้อ 4) — ใส่บรรทัดแรกของผลลัพธ์ใน PR description; เกิน = ห้ามเปิด PR เสนอวิธีแตกเป็นหลาย PR (ยกเว้น PR ตั้ง stack ครั้งแรกที่คนอนุมัติไว้ — เขียนเหตุผลใน PR)
 3. log ชั่วคราวที่ลืมลบ: `git diff origin/main...HEAD | grep -n '\[DBG-'` ต้องไม่เจอ (`fix-bug` ข้อ 3)
 4. หา secret ใน diff: `git diff origin/main...HEAD | grep -nEi '(api[_-]?key|secret|token|password|BEGIN .*PRIVATE KEY)'` — ถ้าเจอให้หยุดและแจ้ง
-5. ตัวแปร env ใหม่อยู่ใน `.env.example` ครบ
+5. `make decision-check` ผ่าน (env ที่โค้ดอ่านอยู่ใน `.env.example` ครบ) — ตัวกระตุ้นที่รายงาน + ที่หาเองตาม `docs/adr/README.md` ตอบในหัวข้อ `## การตัดสินใจ` ของ PR (ADR-NNNN หรือ "ไม่ต้อง ADR: <เหตุผล>")
 6. dependency ที่เพิ่ม/อัปเกรด (ดู diff ของ lockfile, go.mod, Dockerfile `FROM`): เวอร์ชันและ license ตรงตาม `docs/dependencies.md` และระบุใน PR description
 7. migration ใหม่ (ถ้ามี) รันได้และย้อนกลับได้
-8. เอกสาร: README/docs/ADR (`docs/adr/`) อัปเดตตามที่เปลี่ยน; คำใหม่ของโดเมนอยู่ใน CONTEXT.md และชื่อในโค้ดตรงกับ CONTEXT.md
+8. เอกสารที่ต้องแก้คู่กัน (skill `review` หมวด K): env → README + `.env.example` + `docs/deploy-prod.md`, ตารางใหม่ → data model ใน design, ระบบภายนอก/container → รูป C4, รูปแบบข้อมูลที่ระบบอื่นใช้ → `docs/reference/`; คำใหม่ของโดเมนอยู่ใน CONTEXT.md และชื่อในโค้ดตรงกับ CONTEXT.md
 9. รีวิวตาม skill `review` (Claude Code: subagent `reviewer`; agent อื่น: อ่าน `.agents/skills/review/SKILL.md` แล้วตรวจ diff ตัวเอง) และแก้ข้อ "ต้องแก้" ก่อน
 10. commit message เป็น Conventional Commits และ branch ไม่ใช่ `main`
 11. PR description มี `Closes #<issue>` (ไม่มี issue ให้เปิดก่อน) และหัวข้อ `## CHANGELOG` (หมวด + 1 บรรทัดภาษาไทยมุมผู้ใช้ หรือ `-`) — ไม่แก้ `CHANGELOG.md` เอง (`docs/release.md`)

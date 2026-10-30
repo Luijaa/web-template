@@ -26,6 +26,7 @@
 | [`ai-agents.md`](ai-agents.md) | reference | ความปลอดภัยของ AI agent และฟีเจอร์ AI ในแอป |
 | [`restore-log.md`](restore-log.md) | reference | ผลการซ้อมกู้คืน |
 | [`../CONTEXT.md`](../CONTEXT.md) | reference | คำศัพท์ของโดเมน |
+| `reference/` (ถ้ามี) | reference | สิ่งที่ระบบอื่นใช้: payload webhook, format import/export, OpenAPI ของ API สาธารณะ — แก้ใน PR เดียวกับโค้ด |
 | [`architecture.md`](architecture.md) | explanation | โครงสร้างระบบ (C4) และข้อมูลหลัก |
 | `postmortems/` (ถ้ามี) | explanation | บันทึกเหตุการณ์บน production: ลำดับเวลา, ผลกระทบ, สาเหตุ, ป้องกันครั้งหน้า (skill `fix-bug`) |
 | [`adr/`](adr/README.md) | explanation | การตัดสินใจสำคัญและเหตุผล |

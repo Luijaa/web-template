@@ -24,7 +24,7 @@ PR merge ได้เมื่อทุก job เขียว (check, e2e, dast
 |---|---|---|
 | ci: `check`, `e2e` · image: build `linux/amd64` | `ubuntu-24.04` | `[self-hosted, Linux, X64]` |
 | image: build `linux/arm64` | `ubuntu-24.04-arm` | `[self-hosted, Linux, ARM64]` |
-| ci: `pr-size`, `dast`, `security` · image: `guard`, `publish`, `cleanup`, `release` · `image-rescan` | `ubuntu-24.04` | `[self-hosted, Linux, ARM64]` (แบ่งงานให้ 2 เครื่องไม่ต่อคิวกัน) |
+| ci: `pr-size` (+ step `decisions`), `dast`, `security` · image: `guard`, `publish`, `cleanup`, `release` · `image-rescan` | `ubuntu-24.04` | `[self-hosted, Linux, ARM64]` (แบ่งงานให้ 2 เครื่องไม่ต่อคิวกัน) |
 
 - self-hosted: เลือกด้วย label มาตรฐานเท่านั้น ไม่อ้างชื่อเครื่อง; ต้องมี runner ทั้ง X64 และ ARM64 (build image แต่ละ arch บนเครื่อง arch นั้น ไม่ใช้ QEMU) และมี `docker` + buildx + compose, `git`, `make`, `python3`, `jq`, `openssl`, `gh`
 - **self-hosted ใช้กับ repo private เท่านั้น** — repo public ให้ PR จาก fork รันโค้ดบนเครื่องเราได้ (`init-project.sh` ปฏิเสธถ้าเห็นว่า repo เป็น public)
