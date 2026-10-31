@@ -28,7 +28,7 @@ PR ทุกอันมีหัวข้อ `## การตัดสินใ
 
 ## กติกา
 
-- ชื่อไฟล์ `NNNN-<slug>.md` เลขรันต่อจากไฟล์ล่าสุด 4 หลัก (`0002-auth-session.md`) slug เป็นอังกฤษตัวเล็กคั่นด้วย `-`
+- ชื่อไฟล์ `NNNN-<slug>.md` เลขรันต่อจากไฟล์ล่าสุด 4 หลัก — เช็คเลขกับ main ล่าสุดและ PR ที่เปิดอยู่ก่อน push (`make decision-check` ตรวจให้: ชนกับ main = fail, ชนกับ PR อื่น = เตือน; PR ที่ merge ทีหลังเป็นฝ่ายเปลี่ยนเลข) (`0002-auth-session.md`) slug เป็นอังกฤษตัวเล็กคั่นด้วย `-`
 - เริ่มจาก `template.md` — หัวข้อที่ไม่จำเป็นลบได้ แต่ต้องมี สถานะ, บริบท, ทางเลือก, ผลการตัดสินใจ
 - อ้างถึงด้วย `ADR-NNNN` (เช่น ใน PR, issue, `.trivyignore-license.yaml`)
 - สถานะ: `proposed` → `accepted` | `rejected`; ภายหลัง `deprecated` หรือ `superseded by ADR-NNNN`

@@ -88,6 +88,22 @@ deletes=$(added "${code[@]}" | grep -ciE 'DELETE[[:space:]]+FROM' || true)
 
 adr_files=$(printf '%s\n' "$changed" | grep -E '^docs/adr/[0-9]{4}-' || true)
 
+# 9. ADR numbers must be unique: in this tree, against the latest base branch, and (best effort) against other open PRs
+if [ -d docs/adr ]; then
+  dup=$(ls docs/adr | grep -oE '^[0-9]{4}' | sort | uniq -d || true)
+  [ -n "$dup" ] && errors="${errors}  - เลข ADR ซ้ำใน docs/adr/: $(echo $dup)"$'\n'
+  for f in $(printf '%s\n' "$adr_files" | grep -v '^$' || true); do
+    num=$(basename "$f" | cut -c1-4)
+    taken=$(git ls-tree --name-only "$base" docs/adr/ 2>/dev/null | grep -E "^docs/adr/${num}-" | grep -vxF "$f" || true)
+    [ -n "$taken" ] && errors="${errors}  - ADR-${num} ใน branch นี้ชนกับ $(echo $taken) บน ${base} — fetch แล้วเปลี่ยนเป็นเลขว่างถัดไป"$'\n'
+    if command -v gh >/dev/null 2>&1; then
+      others=$(gh pr list --state open --json number,headRefName,files \
+        --jq ".[] | select(.headRefName != \"${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}\") | select(any(.files[]; .path | test(\"^docs/adr/${num}-\"))) | \"#\\(.number)\"" 2>/dev/null || true)
+      [ -n "$others" ] && add_trigger "ADR-${num} ถูกใช้ใน PR ที่เปิดอยู่ด้วย: $(echo $others) → ตกลงกันว่าใครเปลี่ยนเลข (PR ที่ merge ทีหลังเปลี่ยน)"
+    fi
+  done
+fi
+
 echo "decision-check: vs $(git rev-parse --short "$mb") (${base})"
 [ -n "$errors" ] && printf 'ต้องแก้:\n%s' "$errors"
 if [ -n "$triggers" ]; then
@@ -99,7 +115,7 @@ fi
 [ -n "$notes" ] && printf '%s' "$notes"
 
 problems=""
-[ -n "$errors" ] && problems="env ที่โค้ดอ่านต้องอยู่ใน .env.example"
+[ -n "$errors" ] && problems="แก้รายการ ต้องแก้ ด้านบนก่อน (env ใน .env.example, เลข ADR ไม่ซ้ำ)"
 if [ -n "$triggers" ] && [ -n "$body" ] && ! grep -qE '^##[[:space:]]+การตัดสินใจ' "$body"; then
   echo "::warning::PR มีตัวกระตุ้นแต่ไม่มีหัวข้อ \"## การตัดสินใจ\" (docs/adr/README.md)"
 fi
