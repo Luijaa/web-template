@@ -74,6 +74,18 @@ deps=$( { added 'go.mod' '**/go.mod' | grep -v '// indirect' | grep -oE '^\+[[:s
           added 'package.json' '**/package.json' | grep -oE '^\+[[:space:]]+"(@[a-z0-9._-]+/)?[a-z0-9._-]+":[[:space:]]*"[~^]?[0-9][^"]*"' | sed -E 's/^\+[[:space:]]+"//; s/":.*//'; } | sort -u || true)
 [ -n "$deps" ] && add_trigger "dependency ใหม่/อัปเกรด: $(echo $deps) → ตาราง dependency ใน PR (docs/dependencies.md)"
 
+# 6. calls to external hosts -> new external system: ADR + C4 (placeholders like example.com/localhost are ignored)
+hosts=$(added "${code[@]}" | grep -oE "[\"'\`]https?://[a-z0-9.-]+\.[a-z]{2,}" | sed -E "s#^.https?://##" | grep -vE '(^|\.)(example\.(com|org|net)|localhost|invalid|test|local)$' | sort -u || true)
+[ -n "$hosts" ] && add_trigger "เรียกระบบภายนอก: $(echo $hosts) → ถ้าเป็นระบบชนิดใหม่ = ADR + รูป C4 ใน docs/architecture.md"
+
+# 7. secret-looking fields (json/yaml tags) -> how secrets are stored
+secret_fields=$(added "${code[@]}" | grep -oiE '(json|yaml):"[a-z_]*(token|secret|password|api_?key|credential)[a-z_]*' | sed -E 's/^[a-zA-Z]+:"//' | sort -u || true)
+[ -n "$secret_fields" ] && add_trigger "ฟิลด์ที่น่าจะเป็น secret: $(echo $secret_fields) → อ้าง ADR วิธีเก็บ secret ที่มีอยู่ หรือเขียนใหม่"
+
+# 8. data deletion in code -> retention policy, checked against what screens show
+deletes=$(added "${code[@]}" | grep -ciE 'DELETE[[:space:]]+FROM' || true)
+[ "${deletes:-0}" -gt 0 ] && add_trigger "โค้ดลบข้อมูล (DELETE FROM ${deletes} จุด) → ถ้าลบอัตโนมัติหรือตามอายุ = ADR นโยบาย retention และเทียบกับข้อมูลย้อนหลังที่หน้าจอ/รายงานใช้"
+
 adr_files=$(printf '%s\n' "$changed" | grep -E '^docs/adr/[0-9]{4}-' || true)
 
 echo "decision-check: vs $(git rev-parse --short "$mb") (${base})"

@@ -36,7 +36,7 @@ source: written for this template; outsider and trace-the-path ideas adapted (no
 - ขนาด: `make pr-size` บน branch ของ PR (หรือดู warning `PR size` ใน CI) — เกิน ~800 โดยไม่มีเหตุผลที่คนอนุมัติใน PR = **ต้องแก้** (เสนอวิธีแตก)
 - PR มี `Closes #<issue>` (หรือ `Refs`), หัวข้อ `## CHANGELOG` ตรงกับที่เปลี่ยนจริง (หรือ `-`) และ PR งานปกติไม่แก้ `CHANGELOG.md`
 - ชื่อ model/ฟิลด์/สถานะ/ข้อความ UI ตาม `CONTEXT.md` (ไม่มีคำใน _ห้ามใช้_); ตรงกับ ADR/DECISIONS
-- รัน `make decision-check` (หรือดูผล step `decisions` ใน CI) แล้วไล่ diff หา**ตัวกระตุ้น**ทุกข้อใน `docs/adr/README.md` เอง (สคริปต์จับไม่ได้ทุกข้อ: secret ในคอลัมน์ JSON, ระบบภายนอกใหม่, โค้ดที่ทำต่างจากข้อความใน ADR/design) — ตัวกระตุ้นที่ไม่มี ADR (ใหม่หรือเดิมที่ครอบคลุม) หรือ PR ไม่มีหัวข้อ `## การตัดสินใจ` = **ต้องแก้**; โค้ดขัดกับ ADR/design ที่อนุมัติแล้วโดยไม่มี ADR ใหม่ = **ต้องแก้** แม้โค้ดจะดีกว่า
+- รัน `make decision-check` (หรือดูผล step `decisions` ใน CI) แล้วไล่ diff หา**ตัวกระตุ้น**ทุกข้อใน `docs/adr/README.md` เอง (สคริปต์จับไม่ได้ทุกข้อ: โค้ดที่ทำต่างจากข้อความใน ADR/design, env ชื่อเดียวกันแต่คนละความหมาย, "ไม่ต้อง ADR" ที่เหตุผลขัดกับ design) — ตัวกระตุ้นที่ไม่มี ADR (ใหม่หรือเดิมที่ครอบคลุม) หรือ PR ไม่มีหัวข้อ `## การตัดสินใจ` = **ต้องแก้**; โค้ดขัดกับ ADR/design ที่อนุมัติแล้วโดยไม่มี ADR ใหม่ = **ต้องแก้** แม้โค้ดจะดีกว่า; ADR ใน PR ยัง `proposed`/"รอเลือก" = ยัง merge ไม่ได้ (คนต้องเลือกก่อน — `docs/adr/README.md`)
 - PR เตรียม release (`docs: CHANGELOG for vX.Y.Z`): ครบทุก PR ตั้งแต่ tag ล่าสุด (เทียบกับ `make release-draft`), เลขเวอร์ชันตาม SemVer ใน `docs/release.md`, ไม่แก้เนื้อหาเวอร์ชันที่ปล่อยแล้ว
 - ไม่มี secret, ไม่มีตัวอักษรซ่อน, ไม่มี comment/เอกสาร/fixture ที่พูดสั่ง AI, ไม่เหลือ `[DBG-`
 

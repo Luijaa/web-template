@@ -20,10 +20,11 @@
 - เชื่อมระบบภายนอกชนิดใหม่ (API ภายนอก, SMTP, webhook ขาออก, OAuth/OIDC)
 - auth, session, สิทธิ์แบบใหม่ หรือนโยบายความปลอดภัยที่มีทางเลือกให้ชั่ง (SSRF, CORS, CSP, rate limit)
 - รูปแบบข้อมูลที่ระบบอื่นใช้ (format import/export, payload webhook, API สาธารณะ)
+- ลบข้อมูลอัตโนมัติหรือตามอายุ (retention, cleanup) — ต้องเทียบกับข้อมูลย้อนหลังที่หน้าจอ/รายงานใช้ และนโยบายใน design
 - ทำต่างจากที่ ADR หรือ design ที่อนุมัติแล้วเขียนไว้ — เขียน ADR ใหม่ที่ supersede หรือแก้ design ใน PR เดียวกัน ห้ามปล่อยให้เอกสารขัดกับโค้ด
 
 PR ทุกอันมีหัวข้อ `## การตัดสินใจ` (`.github/pull_request_template.md`): ตัวกระตุ้นแต่ละข้อ → `ADR-NNNN` หรือ `ไม่ต้อง ADR: <เหตุผล>`; ไม่มีตัวกระตุ้น → `ไม่มี`
-`make decision-check` (`scripts/decision-check.sh`, รันใน CI ด้วย) หาตัวกระตุ้นบางส่วนจาก diff ให้ (env ใหม่, สิทธิ์ container, migration, dependency) และ fail เมื่อโค้ดอ่าน env ที่ไม่มีใน `.env.example` — ที่เหลือ (secret ในคอลัมน์ JSON, ระบบภายนอก, ขัดกับเอกสาร) ผู้เขียนและ reviewer ต้องดูเอง
+`make decision-check` (`scripts/decision-check.sh`, รันใน CI ด้วย) หาตัวกระตุ้นบางส่วนจาก diff ให้ (env ใหม่, สิทธิ์ container, migration, dependency, URL ระบบภายนอก, field ที่น่าจะเป็น secret, `DELETE FROM`) และ fail เมื่อโค้ดอ่าน env ที่ไม่มีใน `.env.example` — ที่เหลือ (โค้ดที่ทำต่างจากข้อความใน ADR/design, ความหมายของ env ที่ชนกัน) ผู้เขียนและ reviewer ต้องดูเอง
 
 ## กติกา
 
@@ -33,6 +34,7 @@ PR ทุกอันมีหัวข้อ `## การตัดสินใ
 - สถานะ: `proposed` → `accepted` | `rejected`; ภายหลัง `deprecated` หรือ `superseded by ADR-NNNN`
 - **ห้ามแก้เนื้อหา ADR ที่ accepted แล้ว** (ยกเว้นคำผิด/ลิงก์) — เปลี่ยนใจให้เขียน ADR ใหม่ที่อ้างถึงอันเดิม แล้วแก้สถานะอันเดิมเป็น `superseded by ADR-NNNN`
 - ADR เขียนใน PR เดียวกับโค้ดที่ทำตามการตัดสินใจนั้น และเพิ่มบรรทัดในดัชนีด้านล่าง
+- **ADR ที่ยังรอคนเลือก (`proposed` / "รอเลือก") ห้าม merge** — คนเลือกทางระหว่าง review แล้วแก้ไฟล์เป็น `accepted` (หรือ `rejected`) พร้อมผู้ตัดสินและวันที่ก่อน merge; ถ้าทางที่เลือกต้องแก้โค้ด เปิด issue ต่อ
 - เนื้อหาภาษาไทยได้ ศัพท์เทคนิคใช้อังกฤษ
 
 ## ดัชนี
