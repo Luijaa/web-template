@@ -88,6 +88,31 @@ deletes=$(added "${code[@]}" | grep -ciE 'DELETE[[:space:]]+FROM' || true)
 
 adr_files=$(printf '%s\n' "$changed" | grep -E '^docs/adr/[0-9]{4}-' || true)
 
+# 10. design gate (docs/design-process.md section 1): new tables or external systems need an approved design first
+new_tables=$(for f in $migrations; do cat "$f" 2>/dev/null; done | grep -ioE 'CREATE[[:space:]]+TABLE[[:space:]]+(IF[[:space:]]+NOT[[:space:]]+EXISTS[[:space:]]+)?[a-z_]+' | awk '{print $NF}' | sort -u || true)
+if [ -n "$new_tables$hosts" ]; then
+  why="${new_tables:+ตารางใหม่: $(echo $new_tables)}${new_tables:+${hosts:+; }}${hosts:+ระบบภายนอก: $(echo $hosts)}"
+  add_trigger "เข้าเกณฑ์ต้อง design ($why) → ต้องมี docs/design/<slug>.md ที่ merge แล้ว และบรรทัด Design: ใน PR ชี้ไฟล์นั้น"
+  if [ -n "$body" ] && grep -qE '^Design:.*ไม่ต้อง' "$body"; then
+    echo "::warning::PR เขียน \"Design: ไม่ต้อง\" แต่ diff เข้าเกณฑ์ต้อง design (${why})"
+  fi
+fi
+
+# 12. an ADR still "proposed" (waiting for a person to choose) must not be merged (docs/adr/README.md)
+for f in $(printf '%s\n' "$adr_files" | grep -v '^$' || true); do
+  [ -f "$f" ] && grep -qE '^status:[[:space:]]*proposed' "$f" && errors="${errors}  - $(basename "$f" | cut -c1-4): status ยังเป็น proposed — คนต้องเลือกแล้วแก้เป็น accepted/rejected ก่อน merge"$'\n'
+done
+
+# 11. accepted ADRs are not edited (typo/link fixes: say "ADR-NNNN: แก้คำผิด/ลิงก์" in the PR body); a status change to superseded/deprecated is fine
+for f in $(git diff --name-only --diff-filter=M "$mb" -- 'docs/adr/[0-9][0-9][0-9][0-9]-*.md' || true); do
+  git show "$mb:$f" 2>/dev/null | grep -qE '^status:[[:space:]]*accepted' || continue
+  num=$(basename "$f" | cut -c1-4)
+  body_lines=$(git diff -U0 "$mb" -- "$f" | grep -E '^[+-][^+-]' | grep -vE '^[+-]status:' | grep -c . || true)
+  [ "${body_lines:-0}" -eq 0 ] && continue
+  if [ -n "$body" ] && grep -qE "ADR-${num}:[[:space:]]*แก้(คำผิด|ลิงก์)" "$body"; then continue; fi
+  errors="${errors}  - แก้เนื้อหา ADR-${num} ที่ accepted แล้ว (${body_lines} บรรทัด) — เขียน ADR ใหม่ที่ supersede; ถ้าแก้แค่คำผิด/ลิงก์ ใส่ \"ADR-${num}: แก้คำผิด\" ใน PR body"$'\n'
+done
+
 # 9. ADR numbers must be unique: in this tree, against the latest base branch, and (best effort) against other open PRs
 if [ -d docs/adr ]; then
   dup=$(ls docs/adr | grep -oE '^[0-9]{4}' | sort | uniq -d || true)
@@ -115,7 +140,7 @@ fi
 [ -n "$notes" ] && printf '%s' "$notes"
 
 problems=""
-[ -n "$errors" ] && problems="แก้รายการ ต้องแก้ ด้านบนก่อน (env ใน .env.example, เลข ADR ไม่ซ้ำ)"
+[ -n "$errors" ] && problems="แก้รายการ ต้องแก้ ด้านบนก่อน (env ใน .env.example, เลข ADR ไม่ซ้ำ, ไม่แก้ ADR ที่ accepted, ไม่ merge ADR ที่ proposed)"
 if [ -n "$triggers" ] && [ -n "$body" ] && ! grep -qE '^##[[:space:]]+การตัดสินใจ' "$body"; then
   echo "::warning::PR มีตัวกระตุ้นแต่ไม่มีหัวข้อ \"## การตัดสินใจ\" (docs/adr/README.md)"
 fi
